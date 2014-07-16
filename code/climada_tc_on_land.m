@@ -63,17 +63,21 @@ if isempty(border_mask)
     end
 end
 
-
 msgstr   = sprintf('processing %i tracks\n',length(tc_track));
 h        = waitbar(0,msgstr);
 mod_step = 500;
 for t_i = 1:length(tc_track)
+    tc_track(t_i).onLand = tc_track(t_i).lon*0;
     i = round((tc_track(t_i).lon - (border_mask.lon_range(1)-border_mask.resolution_x/2)) /border_mask.resolution_x)+1;
     j = round((tc_track(t_i).lat - (border_mask.lat_range(1)-border_mask.resolution_y/2)) /border_mask.resolution_y)+1;
     i(i>size(border_mask.world_mask,2)) = size(border_mask.world_mask,2);
     j(j>size(border_mask.world_mask,1)) = size(border_mask.world_mask,1);
     for n_i = 1:length(i)
-        tc_track(t_i).onLand(n_i) = border_mask.world_mask(j(n_i),i(n_i));
+        try
+            tc_track(t_i).onLand(n_i) = border_mask.world_mask(j(n_i),i(n_i));
+        catch
+            tc_track(t_i).onLand(n_i) = 0;
+        end
     end 
     if mod(t_i,mod_step) == 0
         mod_step          = 500;
