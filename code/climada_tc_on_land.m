@@ -22,6 +22,7 @@ function tc_track = climada_tc_on_land(tc_track, border_mask)
 % RESTRICTIONS:
 % MODIFICATION HISTORY:
 % Lea Mueller, 20121203
+% David N. Bresch, david.bresch@gmail.com, 20140716, minor edit to catch date-line issue
 %-
 
 % init global variables
@@ -66,6 +67,7 @@ end
 msgstr   = sprintf('processing %i tracks\n',length(tc_track));
 h        = waitbar(0,msgstr);
 mod_step = 500;
+catch_count=0; % init
 for t_i = 1:length(tc_track)
     tc_track(t_i).onLand = tc_track(t_i).lon*0;
     i = round((tc_track(t_i).lon - (border_mask.lon_range(1)-border_mask.resolution_x/2)) /border_mask.resolution_x)+1;
@@ -76,6 +78,7 @@ for t_i = 1:length(tc_track)
         try
             tc_track(t_i).onLand(n_i) = border_mask.world_mask(j(n_i),i(n_i));
         catch
+            catch_count=catch_count+1;
             tc_track(t_i).onLand(n_i) = 0;
         end
     end 
@@ -86,6 +89,10 @@ for t_i = 1:length(tc_track)
     end
 end
 close(h)
+
+if catch_count>0
+    fprintf('WARNING: %i times dateline issue encountered, ignored\n',catch_count);
+end
 
 
 % figure
