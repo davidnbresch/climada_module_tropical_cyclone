@@ -117,7 +117,7 @@ t_i     = 13391;
 nametag = [];
 climada_figuresize(0.6,0.8);
 hazard_     = hazard;
-hazard_.arr = hazard.arr(t_i,:);
+hazard_.arr = hazard.intensity(t_i,:);
 climada_plot_footprint(hazard_, tc_track(t_i), nametag)
 % plot(centroids.Longitude, centroids.Latitude,'.k')
 
@@ -127,7 +127,7 @@ plot(sort(hazard_.arr(:)))
 % only original centroids on land
 nametag = [];
 climada_figuresize(0.6,0.8);
-hazard_.arr = hazard.arr(t_i,1:26706);
+hazard_.arr = hazard.intensity(t_i,1:26706);
 hazard_.lon = hazard.lon(1:26706);
 hazard_.lat = hazard.lat(1:26706);
 climada_plot_footprint(hazard_, tc_track(t_i), nametag)
@@ -135,7 +135,7 @@ climada_plot_footprint(hazard_, tc_track(t_i), nametag)
 % only extended centroids, coarse grid
 nametag = [];
 climada_figuresize(0.6,0.8);
-hazard_.arr = hazard.arr(t_i,26707:end);
+hazard_.arr = hazard.intensity(t_i,26707:end);
 hazard_.lon = hazard.lon(26707:end);
 hazard_.lat = hazard.lat(26707:end);
 climada_plot_footprint(hazard_, tc_track(t_i), nametag)
@@ -153,7 +153,7 @@ plotclr(x,y,v, marker, markersize, colorbar_on, miv, mav, map, zero_off, v_exp)
 
 
 %% EXTENDED CENTROIDS
-% create extended centroids, with coarse grid (1°), for nice pictures for
+% create extended centroids, with coarse grid (1?), for nice pictures for
 % wind footprint and loss footprint
 grid_resolution  = 1; % regular grids resolution in degree
 lon = [-100 -70];

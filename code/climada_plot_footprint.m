@@ -9,7 +9,7 @@ function climada_plot_footprint(hazard, tc_track, nametag)
 % EXAMPLE:
 %   climada_plot_windfield
 % INPUTS:
-%   hazard: hazard.arr with wind intensities per centroid
+%   hazard: hazard.intensity with wind intensities per centroid
 %   tc_track: a structure with the track information:
 %   track_no: number of track to show footprint
 % OPTIONAL INPUT PARAMETERS:
@@ -17,7 +17,7 @@ function climada_plot_footprint(hazard, tc_track, nametag)
 %   figure with footprint
 % RESTRICTIONS:
 % MODIFICATION HISTORY:
-% Lea Müller, david.bresch@gmail.com, 20121205
+% Lea Mueller, david.bresch@gmail.com, 20121205
 %-
 
 global climada_global
@@ -52,9 +52,9 @@ if ~isstruct(hazard)
     defaultanswer = {'1011'};
     answer   = inputdlg(prompt,name,1,defaultanswer);
     track_no = str2double(answer{1});
-    windfield = hazard.arr(track_no,:);
+    windfield = hazard.intensity(track_no,:);
 else
-    windfield = hazard.arr(1,:);
+    windfield = hazard.intensity(1,:);
 end
 % prompt for tc_track if not given
 if isempty(tc_track)

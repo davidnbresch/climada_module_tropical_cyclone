@@ -18,7 +18,7 @@ function hazard = climada_hazard_distance_to_coast_china(hazard, centroids, tc_t
 % OPTIONAL INPUT PARAMETERS:
 %   check_figure to create figure
 % OUTPUTS:
-%   same hazard structure but hazard.arr are lower values depending on
+%   same hazard structure but hazard.intensity are lower values depending on
 %   distance to coast
 % RESTRICTIONS:
 % MODIFICATION HISTORY:
@@ -75,9 +75,9 @@ if ~isstruct(centroids) % load, if filename given
 end
 
 % check if hazard and centroids go together
-if length(centroids.Longitude) ~= size(hazard.arr,2)
+if length(centroids.Longitude) ~= size(hazard.intensity,2)
     fprintf('%d centroids don''t match with hazard file (%d centroids). Unable to proceed.\n',...
-            length(centroids.Longitude),  size(hazard.arr,2))
+            length(centroids.Longitude),  size(hazard.intensity,2))
     hazard = [];    
     return
 end
@@ -193,27 +193,27 @@ if check_figure
 end
 
 
-% no_events    = size(hazard.arr,1);
+% no_events    = size(hazard.intensity,1);
 % % create matrix of weakening factor to go with number of events
 % fitted_array = repmat(fitted_fct,no_events,1);
 % 
 % % combine weakening factor with original wind intensities
-% hazard.arr   = hazard.arr.* fitted_array;
+% hazard.intensity   = hazard.intensity.* fitted_array;
 
 tc_cat = [tc_track.category];
 
 %Tropical storm
 cat_0  = tc_cat <= 0;
-hazard.arr_w = hazard.arr;
-hazard.arr_w(cat_0',:) = bsxfun(@times,hazard.arr(cat_0',:),wind_weakening(:,1)');
+hazard.intensity_w = hazard.intensity;
+hazard.intensity_w(cat_0',:) = bsxfun(@times,hazard.intensity(cat_0',:),wind_weakening(:,1)');
 % Hurricane Cat. 1 2
 cat_12  = tc_cat >0 & tc_cat <3;
-hazard.arr_w(cat_12',:) = bsxfun(@times,hazard.arr(cat_12',:),wind_weakening(:,2)');
+hazard.intensity_w(cat_12',:) = bsxfun(@times,hazard.intensity(cat_12',:),wind_weakening(:,2)');
 % Hurricane Cat. 3 4 5
 cat_345  = tc_cat >= 3;
-hazard.arr_w(cat_345',:) = bsxfun(@times,hazard.arr(cat_345',:),wind_weakening(:,3)');
+hazard.intensity_w(cat_345',:) = bsxfun(@times,hazard.intensity(cat_345',:),wind_weakening(:,3)');
 
-hazard.arr = hazard.arr_w;
+hazard.intensity = hazard.intensity_w;
 hazard     = rmfield(hazard,'arr_w');
 
 
@@ -226,9 +226,9 @@ hazard     = rmfield(hazard,'arr_w');
 
 
 % % initialize weakened wind intensity array
-% hazard.arr_wkn = full(hazard.arr);
+% hazard.intensity_wkn = full(hazard.intensity);
 % 
-% no_events    = size(hazard.arr,1);
+% no_events    = size(hazard.intensity,1);
 % t0           = clock;
 % msgstr       = sprintf('Apply weakening of wind intensity depening \n on distance to coast for %d events\n', no_events);
 % h            = waitbar(0, msgstr);
@@ -237,13 +237,13 @@ hazard     = rmfield(hazard,'arr_w');
 % for e_i = 1:no_events 
 %     
 %     % find centroids where wind is bigger than 0
-%     cen_index = logical(full(hazard.arr(e_i,:)));
+%     cen_index = logical(full(hazard.intensity(e_i,:)));
 %     %cen_index_ori = cen_index; find(cen_index_ori); find(cen_index)
 %     
 %     % take only centroids where distance to coast is positive
 %     cen_index(fitted_fct == 1)    = 0;
 %     wkn                           = fitted_fct(cen_index);
-%     hazard.arr_wkn(e_i,cen_index) = hazard.arr(e_i,cen_index).*wkn;
+%     hazard.intensity_wkn(e_i,cen_index) = hazard.intensity(e_i,cen_index).*wkn;
 %  
 %     if mod(e_i, mod_step)==0
 %         mod_step              = 100;

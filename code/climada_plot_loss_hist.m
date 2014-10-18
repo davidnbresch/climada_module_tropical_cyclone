@@ -9,7 +9,7 @@ function climada_plot_loss_hist(event_loss, nametag)
 % EXAMPLE:
 %   climada_plot_windfield
 % INPUTS:
-%   hazard: hazard.arr with wind intensities per centroid
+%   hazard: hazard.intensity with wind intensities per centroid
 %   tc_track: a structure with the track information:
 %   track_no: number of track to show footprint
 % OPTIONAL INPUT PARAMETERS:
@@ -17,7 +17,7 @@ function climada_plot_loss_hist(event_loss, nametag)
 %   figure with footprint
 % RESTRICTIONS:
 % MODIFICATION HISTORY:
-% Lea Müller, david.bresch@gmail.com, 20121205
+% Lea Mueller, david.bresch@gmail.com, 20121205
 %-
 
 global climada_global

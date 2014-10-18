@@ -161,8 +161,8 @@ axes(handles.axes2);
 % popupmenu3_Callback(hObject, eventdata, handles)
 % popupmenu4_Callback(hObject, eventdata, handles)
 % 
-% if size(hazard.arr,1) == length(tc_track)
-%     tc_maxwind    = full(max(hazard.arr'));
+% if size(hazard.intensity,1) == length(tc_track)
+%     tc_maxwind    = full(max(hazard.intensity'));
 %     [tc_maxwind track_nos] = sort(tc_maxwind,'descend');
 %     track_nos = track_nos(1:500);
 %     % check for historical tracks only
@@ -397,7 +397,7 @@ if clim == 1 && ~isempty(hazard_2030)
     hazard_.lat = hazard_2030.lat;
     nametag     = sprintf('%d (cc 2030)',track_no);
 else
-    hazard_.arr = hazard.arr(track_no,:);
+    hazard_.arr = hazard.intensity(track_no,:);
     hazard_.lon = hazard.lon;
     hazard_.lat = hazard.lat;
     nametag     = int2str(track_no);
@@ -756,7 +756,7 @@ function checkbox2_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of checkbox2
 global tc_track
 global hazard
-tc_maxwind    = full(max(hazard.arr'));
+tc_maxwind    = full(max(hazard.intensity'));
 [tc_maxwind track_nos] = sort(tc_maxwind,'descend');
 track_nos = track_nos(1:448);
 % check for historical tracks only
@@ -907,7 +907,7 @@ popupmenu4_Callback(hObject, eventdata, handles)
 popupmenu5_Callback(hObject, eventdata, handles)
 checkbox2_Callback(hObject, eventdata, handles)
 
-% tc_maxwind    = full(max(hazard.arr'));
+% tc_maxwind    = full(max(hazard.intensity'));
 % [tc_maxwind track_nos] = sort(tc_maxwind,'descend');
 % track_nos = track_nos(1:500);
 % % check for historical tracks only

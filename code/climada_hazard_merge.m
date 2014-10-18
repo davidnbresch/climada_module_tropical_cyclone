@@ -1,4 +1,3 @@
-
 function hazard = climada_hazard_merge(hazard1, hazard2)
 
 % hazard1 = hazard_wkn;
@@ -28,7 +27,7 @@ if size(hazard1.lon,2) ~= size(hazard2.lon,2)
     hazard.lat = [hazard1.lat hazard2.lat];
     no_cen     = size(hazard.lon,2);
     hazard.centroid_ID = 1:no_cen;
-    hazard.arr = [hazard1.arr hazard2.arr];
+    hazard.intensity = [hazard1.intensity hazard2.intensity];
 end
 
 
