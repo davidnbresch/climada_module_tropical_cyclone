@@ -102,8 +102,7 @@ climada_hazard_distance_to_coast_china(hazard, centroids, tc_track(1:10), check_
 %% CLIMATE CHANGE HAZARD
 hazard_save_name = 'test_clim';
 screw = [];
-hazard_clim  =  climada_hazard_clim_scen(hazard, tc_track(1:10), hazard_save_name, 2030, screw);
-
+hazard_clim  =  climada_hazard_clim_scen_advanced(hazard, tc_track(1:10), hazard_save_name, 2030, screw);
 
 
 %% VISUALIZE FOOTPRINT FROM HAZARD

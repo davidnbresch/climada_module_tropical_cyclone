@@ -1,12 +1,12 @@
-
-function hazard = climada_hazard_clim_scen(hazard, tc_track, hazard_save_name, reference_year, screw)
-
+function hazard = climada_hazard_clim_scen_advanced(hazard, tc_track, hazard_save_name, reference_year, screw)
 % NAME:
-%   climada_hazard_clim_scen
+%   climada_hazard_clim_scen_advanced
 % PURPOSE:
 %   starting from a given hazard event set (hazard), construct the
 %   hazard event set (hazard_clim_file) for a climate change scenario, e.g.
 %   from IPCC SREX
+%   
+%   see also core climada code climada_hazard_clim_scen
 % CALLING SEQUENCE:
 %   hazard = climada_tc_hazard_clim_scen(hazard, tc_track, reference_year, screw)
 % EXAMPLE:
@@ -39,6 +39,7 @@ function hazard = climada_hazard_clim_scen(hazard, tc_track, hazard_save_name, r
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20090920
 % Lea Mueller, 20120816
+% David N. Bresch, david.bresch@gmail.com, 20141103, named climada_hazard_clim_scen_advanced
 %-
 
 global climada_global
@@ -149,8 +150,6 @@ fprintf('Reference year for hazard_cc: %d \n',reference_year)
 hazard_cc = hazard;
 
 
- 
-
 %% implement changes of climate scenario
 for screw_i = 1:length(screw)
     frequency_screw_reference_year ...
@@ -185,7 +184,6 @@ for screw_i = 1:length(screw)
 end
 
 
-                     
 %% change reference_year and filename
 hazard_cc.reference_year = reference_year;
 hazard_cc.filename       = [hazard.filename '_cc_' int2str(reference_year)];
