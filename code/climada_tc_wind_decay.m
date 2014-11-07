@@ -1,6 +1,6 @@
-
-
 function tc_track = climada_tc_wind_decay(tc_track)
+% UNDOCUMENTED
+%-
 
 % init global variables
 global climada_global

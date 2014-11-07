@@ -30,10 +30,9 @@ function [km nmi mi] = haversine(loc1, loc2)
 %
 %       This program was created using equations found on the website
 %       http://www.movable-type.co.uk/scripts/latlong.html
-
 % Created by Josiah Renfree
 % May 27, 2010
-
+%-
 
 %% Check user inputs
 

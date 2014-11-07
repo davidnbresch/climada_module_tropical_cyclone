@@ -1,5 +1,6 @@
-
 function [entity ELS] = climada_scale_to_MSP_to_market(entity, ELS, MSP_AEL, market_TIV)
+% UNDOCUMENTED
+%-
 
 global climada_global
 if ~climada_init_vars,return;end % init/import global variables

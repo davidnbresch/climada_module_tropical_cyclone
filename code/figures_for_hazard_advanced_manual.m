@@ -1,4 +1,4 @@
-
+%-
 
 % figures for advanced hazard manual
 

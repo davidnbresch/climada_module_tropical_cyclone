@@ -1,6 +1,6 @@
-
 function [centroids hazard] = climada_centroids_hazard_expand(centroids_ori, hazard_ori, tc_track)
-
+% UNDOCUMENTED
+%-
 
 if ~exist('centroids_ori', 'var'), centroids_ori = []; end
 if ~exist('hazard_ori'   , 'var'), hazard_ori    = []; end
@@ -86,7 +86,7 @@ title(titlestr);
 
 
 %% EXTENDED CENTROIDS
-% create extended centroids, with coarse grid (1°), for nice pictures for
+% create extended centroids, with coarse grid (1?), for nice pictures for
 % wind footprint and loss footprint
 % centroids    = centroids_ori;
 grid_resolution  = 1; % regular grids resolution in degree

@@ -1,5 +1,5 @@
 function cMap = makeColorMap(varargin)
-%% MAKECOLORMAP makes smoothly varying colormaps
+% MAKECOLORMAP makes smoothly varying colormaps
 % a = makeColorMap(beginColor, middleColor, endColor, numSteps);
 % a = makeColorMap(beginColor, endColor, numSteps);
 % a = makeColorMap(beginColor, middleColor, endColor);
@@ -29,11 +29,12 @@ function cMap = makeColorMap(varargin)
 % a = makeColorMap([1 0 0],[0 0 1]);
 % colormap(a)
 % colorbar
-
+%
 % Reference:
 % A. Light & P.J. Bartlein, "The End of the Rainbow? Color Schemes for
 % Improved Data Graphics," Eos,Vol. 85, No. 40, 5 October 2004.
 % http://geography.uoregon.edu/datagraphics/EOS/Light&Bartlein_EOS2004.pdf
+%-
 
 defaultNum = 100;
 errorMessage = 'See help MAKECOLORMAP for correct input arguments';

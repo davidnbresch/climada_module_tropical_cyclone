@@ -1,6 +1,6 @@
-
 function climada_plot_entity(entity)
-
+% plot an entity, no detailed documentation
+%-
 
 
 % set colormap
