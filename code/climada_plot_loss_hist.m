@@ -1,9 +1,9 @@
-function climada_plot_loss_hist(event_loss, nametag)
-% TC footprint figure
+function climada_plot_loss_hist(event_loss)
+% EDS loss damage histogram
 % NAME:
-%   climada_plot_windfield
+%   climada_plot_loss_hist
 % PURPOSE:
-% create footprint figure
+% 	plot a histogram of event losses
 % CALLING SEQUENCE:
 %   [contr t_handle] = climada_plot_windfield(hazard, tc_track, track_no)
 % EXAMPLE:
@@ -18,13 +18,12 @@ function climada_plot_loss_hist(event_loss, nametag)
 % RESTRICTIONS:
 % MODIFICATION HISTORY:
 % Lea Mueller, david.bresch@gmail.com, 20121205
+% Lea Mueller, david.bresch@gmail.com, 20141121, fixed (was a mess)
 %-
 
-global climada_global
+%global climada_global
 if ~climada_init_vars, return; end
-if ~exist('event_loss'   , 'var'), event_loss   = []; end
-if ~exist('nametag'      , 'var'), nametag      = ''; end
-
+if ~exist('event_loss', 'var'), event_loss = []; end
 
 if any(full(event_loss))
     event_loss = full(event_loss(event_loss>0));
@@ -45,9 +44,9 @@ if any(full(event_loss))
 else
     no = 0;
 end
-ylabel('Number of pixels')
-xlabel('Loss (USD)')
-titlestr = sprintf('%d loss pixels, total loss: %2.1G',sum(no),full(sum(event_loss)));
+ylabel('Number of events')
+xlabel('Damage ')
+titlestr = sprintf('%d damage, total damage: %2.1G',sum(no),full(sum(event_loss)));
 title(titlestr)
 
 end

@@ -1,13 +1,13 @@
-function climada_plot_footprint(hazard, tc_track, nametag)
+function climada_plot_tc_footprint(hazard, tc_track, nametag)
 % TC footprint figure
 % NAME:
-%   climada_plot_windfield
+%   climada_plot_tc_footprint
 % PURPOSE:
 % create footprint figure
 % CALLING SEQUENCE:
-%   [contr t_handle] = climada_plot_windfield(hazard, tc_track, track_no)
+%   [contr t_handle] = climada_plot_tc_footprint(hazard, tc_track, track_no)
 % EXAMPLE:
-%   climada_plot_windfield
+%   climada_plot_tc_footprint
 % INPUTS:
 %   hazard: hazard.intensity with wind intensities per centroid
 %   tc_track: a structure with the track information:
@@ -49,7 +49,7 @@ if ~isstruct(hazard)
     end
     prompt   ='Type specific No. of track to print windfield [e.g. 1, 10, 34, 1011]:';
     name     =' No. of track';
-    defaultanswer = {'1011'};
+    defaultanswer = {'1'};
     answer   = inputdlg(prompt,name,1,defaultanswer);
     track_no = str2double(answer{1});
     windfield = hazard.intensity(track_no,:);
@@ -136,6 +136,8 @@ end
 climada_plot_world_borders(0.7,[], [], 1)
 climada_plot_tc_track_stormcategory(tc_track, 4, [], 1);
 % plot(centroids.Longitude,centroids.Latitude,'.k','markersize',6,'linewidth',1)
+
+if ~isfield(tc_track,'category'),tc_track=climada_tc_stormcategory(tc_track);end
 
 title_str = sprintf('tc track %s: %s, \t %s - %s, category %d', nametag, tc_track.name, ...
                     datestr(tc_track.nodetime_mat(1),'dd/mmm') ,datestr(tc_track.nodetime_mat(end),'dd/mmm/yyyy'),...

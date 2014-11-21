@@ -408,7 +408,7 @@ axes(handles.axes1);
 % set([asset_handles{:}],'HandleVisibility','off')
 cla
 
-climada_plot_footprint(hazard_, tc_track(track_no), nametag);
+climada_plot_tc_footprint(hazard_, tc_track(track_no), nametag);
 
 % climada_plot_windfield(hazard, tc_track, track_no);
 % % [contr t_handle] = climada_plot_windfield(hazard, tc_track, track_no);

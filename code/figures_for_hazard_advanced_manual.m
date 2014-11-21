@@ -117,7 +117,7 @@ nametag = [];
 climada_figuresize(0.6,0.8);
 hazard_     = hazard;
 hazard_.arr = hazard.intensity(t_i,:);
-climada_plot_footprint(hazard_, tc_track(t_i), nametag)
+climada_plot_tc_footprint(hazard_, tc_track(t_i), nametag)
 % plot(centroids.Longitude, centroids.Latitude,'.k')
 
 figure
@@ -129,7 +129,7 @@ climada_figuresize(0.6,0.8);
 hazard_.arr = hazard.intensity(t_i,1:26706);
 hazard_.lon = hazard.lon(1:26706);
 hazard_.lat = hazard.lat(1:26706);
-climada_plot_footprint(hazard_, tc_track(t_i), nametag)
+climada_plot_tc_footprint(hazard_, tc_track(t_i), nametag)
 
 % only extended centroids, coarse grid
 nametag = [];
@@ -137,7 +137,7 @@ climada_figuresize(0.6,0.8);
 hazard_.arr = hazard.intensity(t_i,26707:end);
 hazard_.lon = hazard.lon(26707:end);
 hazard_.lat = hazard.lat(26707:end);
-climada_plot_footprint(hazard_, tc_track(t_i), nametag)
+climada_plot_tc_footprint(hazard_, tc_track(t_i), nametag)
 
 
 % distance to coast
