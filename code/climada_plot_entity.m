@@ -57,10 +57,10 @@ cmap  = [cmap1; cmap2; cmap3];
 % plot the assets
 
 fig = climada_figuresize(0.5,0.8);
-climada_plot_world_borders(0.7);
+%climada_plot_world_borders(0.7);
+
 hold on
 axis equal
-
 xlabel('Longitude')
 ylabel('Latitude')
 set(gca,'layer','top')
@@ -77,6 +77,8 @@ end
 
 [cbar,asset_handle]= plotclr(entity.assets.Longitude, entity.assets.Latitude, entity.assets.Value, 's',markersize, 1,0,[],cmap,1,0);
 set(get(cbar,'ylabel'),'string','Values','fontsize',12)
+climada_plot_world_borders(0.7);
+set(gca,'xlim',x_range,'ylim',y_range)
 
 return
 
