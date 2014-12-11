@@ -32,17 +32,17 @@ tc_track_ori = tc_track;
 
 %% refine tc_tracks to 1 h
 msgstr   = sprintf('refining %i tracks to 1h timestep\n',length(tc_track));
-h        = waitbar(0,msgstr);
+if climada_global.waitbar,h        = waitbar(0,msgstr);end
 mod_step = 100;
 for t_i = 1:length(tc_track_ori)
     tc_track(t_i) = climada_tc_equal_timestep(tc_track_ori(t_i),1);
-    if mod(t_i,mod_step)==0
+    if mod(t_i,mod_step)==0 && climada_global.waitbar
         mod_step          = 100;
         msgstr            = sprintf('Refining tracks to 1h timestep\n%i/%i tracks',t_i, length(tc_track));
         waitbar(t_i/length(tc_track),h,msgstr); % update waitbar
     end
 end
-close(h)
+if climada_global.waitbar,close(h);end
 tc_track_ori_1h = tc_track;
 
 
@@ -53,7 +53,7 @@ modul_data_dir = [fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 load([modul_data_dir filesep 'border_mask_10km'])
 
 msgstr   = sprintf('processing %i tracks\n',length(tc_track));
-h        = waitbar(0,msgstr);
+if climada_global.waitbar,h        = waitbar(0,msgstr);end
 mod_step = 100;
 for t_i = 1:length(tc_track)
     i = round((tc_track(t_i).lon - (border_mask.lon_range(1)-border_mask.resolution_x/2)) /border_mask.resolution_x)+1;
@@ -63,13 +63,13 @@ for t_i = 1:length(tc_track)
     for n_i = 1:length(i)
         tc_track(t_i).onLand(n_i) = border_mask.world_mask(j(n_i),i(n_i));
     end 
-    if mod(t_i,mod_step)==0
+    if mod(t_i,mod_step)==0 && climada_global.waitbar
         mod_step          = 100;
         msgstr            = sprintf('Add onLand variable to each tc_track \n%i/%i tracks',t_i, length(tc_track));
         waitbar(t_i/length(tc_track),h,msgstr); % update waitbar
     end
 end
-close(h)
+if climada_global.waitbar,close(h);end
 
 % number of generated and historical tracks
 no_ori = sum([tc_track(:).orig_event_flag]);

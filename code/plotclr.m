@@ -98,7 +98,7 @@ iv = find(v >= mav);
 h_points(end+[1:length(iv)]) = ...
     plot3(x(iv),y(iv),v(iv),marker,'color',map(end,:),'markerfacecolor',map(end,:),'markersize',markersize,'linewidth',0.1);
 
-if colorbar_on
+if colorbar_on    
     caxis([miv-clrstep mav])
     colormap(map)
     h = colorbar('ylim',[miv-clrstep mav]);

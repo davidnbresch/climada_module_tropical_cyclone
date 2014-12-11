@@ -65,7 +65,7 @@ if isempty(border_mask)
 end
 
 msgstr   = sprintf('processing %i tracks\n',length(tc_track));
-h        = waitbar(0,msgstr);
+if climada_global.waitbar,h        = waitbar(0,msgstr);end
 mod_step = 500;
 catch_count=0; % init
 for t_i = 1:length(tc_track)
@@ -82,13 +82,13 @@ for t_i = 1:length(tc_track)
             tc_track(t_i).onLand(n_i) = 0;
         end
     end 
-    if mod(t_i,mod_step) == 0
+    if mod(t_i,mod_step) == 0 && climada_global.waitbar
         mod_step          = 500;
         msgstr            = sprintf('Add onLand variable to each tc track \n%i/%i tracks',t_i, length(tc_track));
         waitbar(t_i/length(tc_track),h,msgstr); % update waitbar
     end
 end
-close(h)
+if climada_global.waitbar,close(h);end
 
 if catch_count>0
     fprintf('WARNING: %i times dateline issue encountered, ignored\n',catch_count);

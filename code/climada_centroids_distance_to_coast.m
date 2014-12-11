@@ -79,7 +79,7 @@ else
     no_centroids = length(centroids.Longitude(onLandindex));
     t0           = clock;
     msgstr       = sprintf('Add distance to coast for %d centroids\n', no_centroids);
-    h            = waitbar(0, msgstr, 'Name','Calculate distance to coast for centroids');
+    if climada_global.waitbar,h = waitbar(0, msgstr, 'Name','Calculate distance to coast for centroids');end
     mod_step     = 10; % first time estimate after 10 tracks, then every 100
 
     for cen_i = 1:no_centroids
@@ -90,7 +90,7 @@ else
                                       coastline.lon, coastline.lat)/1000;                          
         [min_dd(cen_i), pos] = min(dd);
 
-        if mod(cen_i,mod_step)==0
+        if mod(cen_i,mod_step)==0 && climada_global.waitbar
             mod_step              = 100;
             t_elapsed_centroids   = etime(clock,t0)/cen_i;
             centroids_remaining   = no_centroids - cen_i;
@@ -100,8 +100,8 @@ else
         end
     end
     centroids.dist_to_coast(logical(onLandindex)) = min_dd;
-    close(h); % dispose waitbar
 end
+if climada_global.waitbar,close(h);end % dispose waitbar
 
 if check_figure
     delta   = 2;
