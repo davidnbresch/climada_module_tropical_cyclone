@@ -10,8 +10,8 @@ hold on
 climada_plot_tc_track_stormcategory(tc_track(t_i), [], 1);
 axis equal
 titlestr = sprintf('%s, %s - %s',strrep(tc_track(t_i).name,' ',''), ...
-                        datestr(tc_track(t_i).nodetime_mat(1),'dd mmm'), ...
-                        datestr(tc_track(t_i).nodetime_mat(end),'dd mmm yyyy'));
+                        datestr(tc_track(t_i).datenum(1),'dd mmm'), ...
+                        datestr(tc_track(t_i).datenum(end),'dd mmm yyyy'));
 title(titlestr)
 axis([-95 -60 20 45])
 

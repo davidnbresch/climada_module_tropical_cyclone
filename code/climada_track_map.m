@@ -175,8 +175,8 @@ axes(handles.axes2);
 %     listbox5_str  = {length(track_nos)};
 %     for t_i = 1:length(track_nos)
 %         listbox5_str{t_i} = sprintf('%d, \t %s - %s, \t\t %d \t\t %2.1f m/s, %s', track_nos(t_i), ...
-%             datestr(tc_track(track_nos(t_i)).nodetime_mat(1),'dd/mm'), ...
-%             datestr(tc_track(track_nos(t_i)).nodetime_mat(end),'dd/mm/yyyy'), ...
+%             datestr(tc_track(track_nos(t_i)).datenum(1),'dd/mm'), ...
+%             datestr(tc_track(track_nos(t_i)).datenum(end),'dd/mm/yyyy'), ...
 %             tc_track(track_nos(t_i)).category, tc_maxwind(t_i), strrep(tc_track(track_nos(t_i)).name,' ',''));
 %     end
 %     set(handles.listbox5, 'String', listbox5_str);
@@ -444,8 +444,8 @@ track_nos = find(tc_index);
 ori_flag      = [tc_track.orig_event_flag];
 track_nos     = track_nos(logical(ori_flag(track_nos)));
 cat_sel       = [tc_track(track_nos).category];
-tc_startdates = arrayfun(@(x) (min(x.nodetime_mat)), tc_track(track_nos));
-tc_enddates   = arrayfun(@(x) (max(x.nodetime_mat)), tc_track(track_nos));
+tc_startdates = arrayfun(@(x) (min(x.datenum)), tc_track(track_nos));
+tc_enddates   = arrayfun(@(x) (max(x.datenum)), tc_track(track_nos));
 listbox1_str  = {};
 for t_i = 1:length(tc_startdates)
     listbox1_str{t_i} = sprintf('%d, \t %s - %s, \t\t %d', track_nos(t_i), datestr(tc_startdates(t_i),'dd/mm'), datestr(tc_enddates(t_i),'dd/mm'), cat_sel(t_i));
@@ -492,8 +492,8 @@ track_nos = t(tc_index2);
 ori_flag      = [tc_track.orig_event_flag];
 track_nos     = track_nos(logical(ori_flag(track_nos)));
 cat_sel       = [tc_track(track_nos).category];
-tc_startdates = arrayfun(@(x) (min(x.nodetime_mat)), tc_track(track_nos));
-tc_enddates   = arrayfun(@(x) (max(x.nodetime_mat)), tc_track(track_nos));
+tc_startdates = arrayfun(@(x) (min(x.datenum)), tc_track(track_nos));
+tc_enddates   = arrayfun(@(x) (max(x.datenum)), tc_track(track_nos));
 listbox1_str  = {};
 for t_i = 1:length(tc_startdates)
     listbox1_str{t_i} = sprintf('%d, \t %s - %s, \t\t %d', track_nos(t_i), datestr(tc_startdates(t_i),'dd/mm'), datestr(tc_enddates(t_i),'dd/mm'), cat_sel(t_i));
@@ -662,8 +662,8 @@ if hist_only == 1
     ori_flag      = [tc_track.orig_event_flag];
 	track_nos     = track_nos(logical(ori_flag(track_nos)));
 end
-tc_startdates = arrayfun(@(x) (min(x.nodetime_mat)), tc_track(track_nos));
-tc_enddates   = arrayfun(@(x) (max(x.nodetime_mat)), tc_track(track_nos));
+tc_startdates = arrayfun(@(x) (min(x.datenum)), tc_track(track_nos));
+tc_enddates   = arrayfun(@(x) (max(x.datenum)), tc_track(track_nos));
 listbox4_str  = {};
 for t_i = 1:length(tc_startdates)
     listbox4_str{t_i} = sprintf('%d, \t %s - %s', track_nos(t_i), datestr(tc_startdates(t_i),'dd/mm'), datestr(tc_enddates(t_i),'dd/mm/yyyy'));
@@ -704,8 +704,8 @@ if hist_only == 1
     ori_flag      = [tc_track.orig_event_flag];
 	track_nos     = track_nos(logical(ori_flag(track_nos)));
 end
-tc_startdates = arrayfun(@(x) (min(x.nodetime_mat)), tc_track(track_nos));
-tc_enddates   = arrayfun(@(x) (max(x.nodetime_mat)), tc_track(track_nos));
+tc_startdates = arrayfun(@(x) (min(x.datenum)), tc_track(track_nos));
+tc_enddates   = arrayfun(@(x) (max(x.datenum)), tc_track(track_nos));
 listbox4_str  = {};
 for t_i = 1:length(tc_startdates)
     listbox4_str{t_i} = sprintf('%d, \t %s - %s', track_nos(t_i), datestr(tc_startdates(t_i),'dd/mm'), datestr(tc_enddates(t_i),'dd/mm/yyyy'));
@@ -770,8 +770,8 @@ listbox5_str  = {length(track_nos)};
 
 for t_i = 1:length(track_nos)
     listbox5_str{t_i} = sprintf('%d, \t %s - %s, \t\t %d \t\t %2.1f m/s, %s', track_nos(t_i), ...
-        datestr(tc_track(track_nos(t_i)).nodetime_mat(1),'dd/mm'), ...
-        datestr(tc_track(track_nos(t_i)).nodetime_mat(end),'dd/mm/yyyy'), ...
+        datestr(tc_track(track_nos(t_i)).datenum(1),'dd/mm'), ...
+        datestr(tc_track(track_nos(t_i)).datenum(end),'dd/mm/yyyy'), ...
         tc_track(track_nos(t_i)).category, tc_maxwind(t_i), strrep(tc_track(track_nos(t_i)).name,' ',''));
 end
 set(handles.listbox5, 'String', listbox5_str);
@@ -920,8 +920,8 @@ checkbox2_Callback(hObject, eventdata, handles)
 % listbox5_str  = {length(track_nos)};
 % for t_i = 1:length(track_nos)
 %     listbox5_str{t_i} = sprintf('%d, \t %s - %s, \t\t %d \t\t %2.1f m/s', track_nos(t_i), ...
-%         datestr(tc_track(track_nos(t_i)).nodetime_mat(1),'dd/mm'), ...
-%         datestr(tc_track(track_nos(t_i)).nodetime_mat(end),'dd/mm/yyyy'), ...
+%         datestr(tc_track(track_nos(t_i)).datenum(1),'dd/mm'), ...
+%         datestr(tc_track(track_nos(t_i)).datenum(end),'dd/mm/yyyy'), ...
 %         tc_track(track_nos(t_i)).category, tc_maxwind(t_i) );
 % end
 % set(handles.listbox5, 'String', listbox5_str);

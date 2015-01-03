@@ -1,4 +1,4 @@
-function [res centroids] = climada_tc_windfield_fast(tc_track, centroids, equal_timestep, silent_mode, check_plot)
+function res = climada_tc_windfield_fast(tc_track, centroids, equal_timestep, silent_mode, check_plot)
 % TC windfield calculation
 % NAME:
 %   climada_tc_windfield
@@ -7,6 +7,10 @@ function [res centroids] = climada_tc_windfield_fast(tc_track, centroids, equal_
 %   the wind field at locations (=centroids)
 %
 %   mainly called from: see climada_tc_hazard_set
+%
+%   Notre: due to improvements also in climada_tc_windfield, this 'fast'
+%   version seems in fact not to be faster any more, hence kept for
+%   comparison, but not used, see climada_tc_windfield
 %
 % CALLING SEQUENCE:
 %   climada_tc_windfield(tc_track,centroids,equal_timestep,silent_mode)
@@ -50,6 +54,7 @@ function [res centroids] = climada_tc_windfield_fast(tc_track, centroids, equal_
 % RESTRICTIONS:
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20090728
+% David N. Bresch, david.bresch@gmail.com, 20150103, not faster than climada_tc_windfield any more
 %-
 
 
@@ -378,7 +383,7 @@ for centroid_i = cen_in % 1:centroid_count % now loop over all centroids
     end % D<10*R
 end % centroid_i
 
-title_str = [tc_track.name ', ' datestr(tc_track.nodetime_mat(1))];
+title_str = [tc_track.name ', ' datestr(tc_track.datenum(1))];
 if ~silent_mode,fprintf('%f secs for %s windfield\n',toc,deblank(title_str));end
 
 

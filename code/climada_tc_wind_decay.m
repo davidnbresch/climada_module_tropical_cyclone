@@ -199,7 +199,7 @@ hold on
 xlim([-5 150])
 ylim([0 1.1])
 ylabel('Relative wind speed (on landfall = 1)')
-timestep  = datenum(0,0,diff(tc_track(1).nodetime_mat(1:2)))*24;
+timestep  = datenum(0,0,diff(tc_track(1).datenum(1:2)))*24;
 xlabelstr = sprintf('Time after landfall (h)');
 xlabel(xlabelstr)
 cmap   = jet(no_cat);
