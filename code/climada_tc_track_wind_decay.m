@@ -25,6 +25,7 @@ function tc_track = climada_tc_track_wind_decay(tc_track, p_rel, check_plot)
 % RESTRICTIONS:
 % MODIFICATION HISTORY:
 % Lea Mueller, 20121203
+% David N. Bresch, david.bresch@gmail.com, 20150106, climada_tc_equal_timestep
 %-
 
 % init global variables
@@ -54,20 +55,10 @@ if ~isstruct(tc_track)
     load(tc_track_file);
 end
 
+% refine tc_tracks to 1 h
+tc_track = climada_tc_equal_timestep(tc_track,1);
 
-%% refine tc_tracks to 1 h
-msgstr   = sprintf('refining %i tracks to 1h timestep\n',length(tc_track));
-if climada_global.waitbar,h        = waitbar(0,msgstr);end
-mod_step = 500;
-for t_i = 1:length(tc_track)
-    tc_track(t_i) = climada_tc_equal_timestep(tc_track(t_i),1);
-    if mod(t_i,mod_step)==0 && climada_global.waitbar
-        mod_step          = 500;
-        msgstr            = sprintf('Refining tracks to 1h timestep\n%i/%i tracks',t_i, length(tc_track));
-        waitbar(t_i/length(tc_track),h,msgstr); % update waitbar
-    end
-end
-if climada_global.waitbar,close(h);end
+
 % make a copy
 tc_track_ori_1h = tc_track;
 
