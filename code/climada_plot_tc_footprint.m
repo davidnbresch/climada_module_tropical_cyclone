@@ -43,6 +43,7 @@ if ~isstruct(hazard)
     hazard      = [];
     vars = whos('-file', hazard_file);
     load(hazard_file);
+    hazard=climada_hazard2octave(hazard); % Octave compatibility for -v7.3 mat-files
     if ~strcmp(vars.name,'hazard')
         hazard = eval(vars.name);
         clear (vars.name)

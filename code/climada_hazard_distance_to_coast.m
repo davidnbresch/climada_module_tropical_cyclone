@@ -52,6 +52,8 @@ if ~isstruct(hazard)
     hazard      = [];
     load(hazard_file);
 end
+hazard=climada_hazard2octave(hazard); % Octave compatibility for -v7.3 mat-files
+
 
 % prompt for centroids if not given
 if isempty(centroids)
