@@ -2,7 +2,6 @@
 
 function track_req = climada_plot_probabilistic_wind_speed_decay(tc_track, track_req, single)
 
-
 % plot historical tc track (Longitude, Latitude) in world map according to
 % saffir-simpson hurrican scale. Add plot of probabilistic generated sister
 % storms. Historical tracks has black lines around markers to identify as
@@ -14,9 +13,9 @@ function track_req = climada_plot_probabilistic_wind_speed_decay(tc_track, track
 %   sister storms. Check Longitude, Latitude and wind speed category
 %   (saffir-simpson hurricane scale) 
 % CALLING SEQUENCE:
-%   climada_plot_probabilistic_wind_speed_map(tc_track)
+%   climada_plot_probabilistic_wind_speed_decay(tc_track)
 % EXAMPLE:
-%   climada_plot_probabilistic_wind_speed_map
+%   climada_plot_probabilistic_wind_speed_decay
 % INPUTS:
 %   tc_track: probabilistic tc track set (random walk of wind speed, 
 %   longitude and latitude), wind speed in knots, nodes every six hours, if
@@ -74,6 +73,11 @@ if ~isstruct(tc_track)
 end
 
 %%
+if ~isfield(tc_track,'onLand')
+    fprintf('onLand variable not found in tc_track, please run climada_tc_on_land\n')
+    return    
+end
+
 no_hist      = sum([tc_track.orig_event_flag]);
 no_generated = length(tc_track)/no_hist;
 ens_size     = no_generated-1;
