@@ -1,4 +1,4 @@
-function climada_plot_IFC_return(hazard, centroids, important_centroid, check_printplot)
+function h = climada_plot_IFC_return(hazard, centroids, important_centroid, check_printplot, check_xlog)
 % climada intensity vs return period for multiple centroids
 % based on probabistic hazard set
 % NAME:
@@ -28,6 +28,10 @@ function climada_plot_IFC_return(hazard, centroids, important_centroid, check_pr
 % MODIFICATION HISTORY:
 % Lea Mueller, muellele@gmail.com, 20110519
 % Lea Mueller, muellele@gmail.com, 20150123, changed hazard.arr to hazard.intensity
+% Gilles Stassen, gillesstassen@hotmail.com, 20150123, ylabel for different perils
+% Gilles Stassen, gillesstassen@hotmail.com, 20150128, fixed an issue with using 'pos' for indexing; 
+%                                                      incorporate non-uniform frequency vector compatability
+% Gilles Stassen, gillesstassen@hotmail.com, 20150129, added logical check_logx argument to trigger logarithmic x axis
 %-
                                                                
 
@@ -38,7 +42,9 @@ if ~exist('hazard'            ,'var'), hazard             = []; end
 if ~exist('centroids'         ,'var'), centroids          = []; end
 if ~exist('important_centroid','var'), important_centroid = []; end
 if ~exist('check_printplot'   ,'var'), check_printplot    = []; end
+if ~exist('check_xlog'        ,'var'), check_xlog         = 0 ; end
 
+h =[];
 
 %% prompt for hazard_set if not given
 if isempty(hazard) % local GUI
@@ -119,16 +125,16 @@ r_length                 = 1:1:length(requested_return_periods);
 
 for imp_i = 1:length(important_centroid)
     %% historical data
-    %1: intensity (wind speed) 
-    int{imp_i}         = full(sort(hazard.intensity(1:no_generated:end,important_centroid(imp_i)),'descend'));
+    %1: intensity
+    [int{imp_i},int_ndx] = sort(full(hazard.intensity(1:no_generated:end,important_centroid(imp_i))),'descend');
     neg                = int{imp_i} < threshold;
+    pos                = int{imp_i} >= threshold;
     %frequency
-    int{imp_i}(:,3)    = hazard.frequency(1)*no_generated;
+    int{imp_i}(:,3)    = hazard.frequency(int_ndx).*no_generated;
     %3: exceedence frequency
     int{imp_i}(:,3)    = cumsum(int{imp_i}(:,3));
     int{imp_i}(neg,:)  = nan;
     %2: fitted intensity
-    pos                = int{imp_i} >= threshold;
     p(:,imp_i)         = polyfit(log(int{imp_i}(pos,3) ), int{imp_i}(pos,1), 1); 
     int{imp_i}(:,2)    = polyval(p(:,imp_i), log(int{imp_i}(:,3)));
     neg                = int{imp_i}(:,2) < 0;
@@ -136,11 +142,11 @@ for imp_i = 1:length(important_centroid)
     
     %% probabilistic data
     %4: intensity
-    int_               = full(sort(hazard.intensity(:,important_centroid(imp_i)),'descend'));
+    [int_, int_ndx_]   = sort(full(hazard.intensity(:,important_centroid(imp_i))),'descend');
     int{imp_i}(:,4)    = int_(1:length(int{imp_i}));
     neg                = int{imp_i}(:,4) < threshold;
     %frequency
-    int{imp_i}(:,5)    = hazard.frequency(1);
+    int{imp_i}(:,5)    = hazard.frequency(int_ndx_(1:length(int{imp_i})));
     %5: exceedence frequency
     int{imp_i}(:,5)    = cumsum(int{imp_i}(:,5));
     int{imp_i}(neg,4:5)= nan;
@@ -164,7 +170,7 @@ end
 
 
 %% set colors
-color1 = [255  69   0;... % orange
+color1 = [255  122  0;... % orange
            67 110 238;... % light blue
           102 205   0;... % light green 
           238 130 238;... % light violet
@@ -172,7 +178,7 @@ color1 = [255  69   0;... % orange
           128 128 128     % gray
           ]/255;
      
-color2 = [220  20  60;... % red
+color2 = [255  20  20;... % red
             0   0 139;... % blue
             0 139   0;... % green 
             85 26 139;... % violet
@@ -206,12 +212,24 @@ for imp_i = length(important_centroid):-1:1
     g(imp_i) = plot(1./int{imp_i}(:,8),  int{imp_i}(:,7), 'o-', 'markersize',3,'color',  color2(imp_i,:));
 end
 
-
-% set(gca,'XTick',[1e-5,1e-4,1e-3,1e-2,1e-1,1e0,1e1]);
+if check_xlog
+    set(gca,'XScale','log');
+end
 set(gca,'XGrid','on')
 set(gca,'YGrid','on')
 xlabel('Return period (years)')
-ylabel('Wind speed (m s^{-1})')
+switch hazard.peril_ID
+    case 'TC'
+        ylabel('Wind speed [m s^{-1}]')
+    case 'TS'
+        ylabel('Surge height [m]')
+    case 'TR' | 'MA'
+        ylabel('Rainfall [mm]')
+    otherwise
+        if isfield(hazard,'units')
+            ylabel(sprintf('Hazard intensity [%s]',hazard.units))
+        else ylabel('Hazard intensity'); end
+end
 title(titlestr)
 
 %legend

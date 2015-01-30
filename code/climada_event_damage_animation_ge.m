@@ -1,0 +1,313 @@
+function res=climada_event_damage_animation_ge(animation_data_file,google_earth_save)
+% climada_event_damage_animation_ge
+% MODULE:
+%   tc_hazard_advanced
+% NAME:
+%   climada_event_damage_animation_ge
+% PURPOSE:
+%   Animation of event damage in google earth
+%   This code write the kmz file for google earth, see e.g.
+%   climada_event_damage_data_tc to calculate all the data. As one often
+%   needs to play with visualization parameters, the process is split.
+%
+%   An animation of the tropical cylclone track hitting the assets as
+%   defined in entity.
+%
+%   The code determines the plot area based on entity (but since there can be
+%   more than one ocean basin's tracks hitting the centroids, the user has
+%   to select the track file).
+%
+%   prior calls: climada_event_damage_data_tc or similar to prepare the
+%   event damage information
+% CALLING SEQUENCE:
+%   res=climada_event_damage_animation_ge(animation_data_file,google_earth_save)
+% EXAMPLE:
+%   res=climada_event_damage_animation_ge; % prompt for
+% INPUTS:
+%   animation_data_file: the data file (.mat) with hazard set which
+%       includes event damage information, see e.g. climada_event_damage_data_tc
+%       > promted for if not given
+%   google_earth_save: the filename of the resulting .kmz google earth file
+%       > promted for if not given
+% OPTIONAL INPUT PARAMETERS:
+% OUTPUTS:
+% MODIFICATION HISTORY:
+% Lea Mueller, muellele@gmail.com, 20150130, initial
+%-
+
+res=[]; % init output
+close all % not really necessary, but speeds things up
+
+global climada_global
+if ~climada_init_vars,return;end % init/import global variables
+
+% poor man's version to check arguments
+% and to set default value where  appropriate
+if ~exist('animation_data_file','var'),animation_data_file='';end
+if ~exist('google_earth_save','var'), google_earth_save = []; end
+
+% PARAMETERS
+% the scale for plots, such that max_damage=max(entity.assets.Value)*damage_scale
+damage_scale=1/3; % defaul =1/2
+
+% the rect to plot (default is are as in hazard.lon/lat, =[], in which case it is automatically determined)
+focus_region=[]; % default=[], [minlon maxlon minlat maxlat]
+
+% load colormap
+colormap_file=[climada_global.data_dir filesep 'system' filesep 'colormap_gray_blue.mat'];
+if exist(colormap_file,'file'),load(colormap_file);end
+
+% intensity plot parameters
+npoints=199;
+interp_method='linear';
+
+% the range (in degree) around the tc_track (to show a bit a wider area in plots)
+%dX=1;dY=1; % default=1
+dX=0;dY=0; % default=1
+
+
+%% prompt for animation_data_file if not given
+if isempty(animation_data_file) % local GUI
+    animation_data_file=[climada_global.data_dir filesep 'results' filesep 'animation_data.mat'];
+    [filename, pathname] = uigetfile(animation_data_file, 'Select animation data file:');
+    if isequal(filename,0) || isequal(pathname,0)
+        return; % cancel
+        fprintf('Consider running climada_event_damage_data_tc to generate the animation data file\n');
+    else
+        animation_data_file=fullfile(pathname,filename);
+    end
+end
+
+
+%% prompt for google_earth_save file
+if isempty(google_earth_save) % local GUI
+    google_earth_save = [climada_global.data_dir filesep 'tc_tracks' filesep 'Select name to save google earth visualiation tc_tracks_counrty.kmz'];
+    [filename, pathname] = uiputfile(google_earth_save, 'Save google earth visualiation of tc track set set as:');
+    if isequal(filename,0) || isequal(pathname,0)
+        return; % cancel
+    else
+        google_earth_save = fullfile(pathname,filename);
+    end
+end
+
+[pathstr, name, ext] = fileparts(google_earth_save);
+if ~strcmp(ext,'kmz')
+    ext = '.kmz';
+end
+if strcmp(pathstr,'')
+    pathstr = [climada_global.data_dir filesep 'tc_tracks'];
+end
+google_earth_save = [fullfile(pathstr,name) ext];
+
+% save kmz file
+fprintf('saving google earth damage animation as\n %s\n',google_earth_save); 
+k = kml(google_earth_save);
+
+
+%%
+load(animation_data_file);
+
+if ~isempty(hazard_TS)
+    fprintf('animation data also for TS\n');
+    %hazard=hazard_TS;
+end
+
+% create colormap for specific peril
+[cmap c_ax]= climada_colormap(hazard.peril_ID);
+cmap_ori = cmap;
+c_ax_ori = c_ax;
+% do show wind speeds/intensities only after reaching a certain level
+if c_ax(1)==0
+    levels = linspace(c_ax(1), c_ax(2), length(cmap)+1);
+    c_ax(1) = levels(2);
+    cmap(1,:)=[];
+end
+if isempty(c_ax)
+    c_ax = [0 full(max(max(hazard.intensity)))];
+end
+
+% intensity_units = [char(hazard.peril_ID) ' intensity'];
+% if isfield(hazard,'units'),intensity_units = [intensity_units ' [' hazard.units ']'];end
+
+
+n_steps = hazard.event_count;
+
+% define grid
+npoints = abs(npoints); % force positive
+xx      = linspace(min(hazard.lon)-dX, max(hazard.lon)+dX, npoints);
+yy      = linspace(min(hazard.lat)-dY, max(hazard.lat)+dY, npoints);
+[X,Y]   = meshgrid(xx,yy); % construct regular grid
+
+damage_min_value = full(min(min(hazard.damage(hazard.damage>0))));
+damage_max_value = full(max(max(hazard.damage)))*damage_scale;
+max_damage_str   = sprintf('%g',damage_max_value);
+
+max_damage_at_centroid=[]; % init
+
+    
+%% plot assets
+% -----------
+values    = hazard.assets.Value;
+min_value = min(values(values>0));
+max_value = max(values);
+pos_indx  = find(values>0); 
+tp        = linspace(0,360,20);
+
+% set assets color scale
+exp_max   = ceil(log10(max_value));
+exp_min   = floor(log10(min_value));
+no_levels = 15;
+val_categories  = linspace(exp_min,exp_max,no_levels-1);
+colors_ = jet(no_levels);
+transp  = 0.5;
+for i = 1:no_levels
+    colorHex(i,:) = kml.color2kmlHex([colors_(i,:) transp]);
+end
+ 
+kk = k.newFolder('Assets');
+% plot assets
+for ii=1:length(pos_indx)
+    i   = pos_indx(ii);
+    val = log10(hazard.assets.Value(i));
+    color_indx = find (val < val_categories);
+    color_indx = color_indx(1);
+
+    kk.poly(hazard.assets.Longitude(i)+0.05*sind(tp), hazard.assets.Latitude(i)+0.05*cosd(tp), ...
+        'altitude', 100,... %hazard.assets.Value(i)/max_value*100
+        'altitudeMode','clampToGround', ...
+        'description','test',...
+        'lineWidth',0,...
+        'polyColor',colorHex(color_indx,:));       
+end
+%figure
+%climada_plot_entity_assets(entity,centroids) 
+
+
+%% plot damage
+% -----------
+% set damage color scale
+% no_levels = 10;
+colors_   = climada_colormap('damage');
+no_levels = length(colors_);
+min_damage_exp = floor(min(log10(nonzeros(hazard.damage))));
+max_damage_exp = ceil(max(log10(nonzeros(hazard.damage))));
+val_categories  = linspace(min_damage_exp,max_damage_exp,no_levels-1);
+transp  = 0.5;
+for i = 1:no_levels
+    colorHex(i,:) = kml.color2kmlHex([colors_(i,:) transp]);
+end
+
+kk = k.newFolder('Damage');
+% plot damage
+for step_i = 1:n_steps   
+    node_i = hazard.tc_track_node(step_i);
+    kkk = kk.newFolder(datestr(hazard.tc_track.datenum(node_i),'dd mmm yyyy HHpm'));
+    
+    if isempty(max_damage_at_centroid)
+        max_damage_at_centroid = full(hazard.damage(step_i,:));
+    else
+        max_damage_at_centroid = max(max_damage_at_centroid,full(hazard.damage(step_i,:)));
+    end
+    values   = max_damage_at_centroid;
+    pos_indx = find(values);
+
+    for ii=1:length(pos_indx)
+        i = pos_indx(ii);
+        val = log10(values(i));
+        color_indx = find (val < val_categories);
+        color_indx = color_indx(1);
+
+        kkk.poly(hazard.assets.Longitude(i)+0.05*sind(tp), hazard.assets.Latitude(i)+0.05*cosd(tp), ...
+            'altitude', 100,...%hazard.assets.Value(i)/max_value*
+            'altitudeMode','clampToGround', ...
+            'description','test',...
+            'lineWidth',0,...
+            'polyColor',colorHex(color_indx,:),...
+            'timeSpanBegin',datestr(hazard.tc_track.datenum(node_i),'yyyy-mm-ddTHH:MM:SSZ'),...
+            'timeSpanEnd',  datestr(hazard.tc_track.datenum(end)+5,'yyyy-mm-ddTHH:MM:SSZ'));               
+    end
+end
+
+
+%% plot hazard intensity
+% -----------
+% set intensity color scale
+[cmap c_ax]= climada_colormap('TC');
+cmap_ori = cmap;
+c_ax_ori = c_ax;
+% do show wind speeds/intensities only after reaching a certain level
+if c_ax(1)==0
+    levels = linspace(c_ax(1), c_ax(2), length(cmap)+1);
+    c_ax(1) = levels(2);
+    cmap(1,:)=[];
+end
+delta_t = diff(hazard.tc_track.datenum(1:2));
+    
+kk = k.newFolder('Hazard intensity');
+for step_i = 1:n_steps   
+    % plot hazard intensity
+    % ---------------------
+    node_i = hazard.tc_track_node(step_i);   
+    values = full(hazard.intensity(step_i,:));
+    %values(values<10) = NaN; % mask low intensities
+    values(values<10) = 0; % mask low intensities
+    if sum(values(:)>10)>0  
+        gridded_VALUE = griddata(hazard.lon,hazard.lat,values,X,Y,interp_method); % interpolate to grid 'linear'       
+        kkk = kk.newFolder(datestr(hazard.tc_track.datenum(node_i),'dd mmm yyyy, HHpm'));
+        kkk.contourf(X,Y,gridded_VALUE,...
+             'name',hazard.tc_track.name, 'description','test',...
+             'colorMap',cmap, 'lineColor','00FFFFFF', 'transparency',0.5,...
+             'caxis',c_ax,...
+             'timeSpanBegin',datestr(hazard.tc_track.datenum(node_i)  ,'yyyy-mm-ddTHH:MM:SSZ'),...
+             'timeSpanEnd',datestr(hazard.tc_track.datenum(node_i)+delta_t,'yyyy-mm-ddTHH:MM:SSZ'));
+    end
+end
+
+
+%% visualize track lines and nodes
+% colors according to saffir-simpson scale
+v_categories = [34 64 83 96 113 135 1000];
+colors_      = [ 'ffffaa00' ; %blue
+                 'ff00aa55' ; %green
+                 'ff00ffff' ; %yellow
+                 'ff00aaff' ; %dark yellow  
+                 'ff0055ff' ; %orange  
+                 'ff0000ff' ; %red
+                 'ff000079' ; %dark red
+                ];
+kk = k.newFolder('Track');
+description_str = sprintf('%s, %s - %s', hazard.tc_track.name, ...
+                    datestr(hazard.tc_track.datenum(1),'dd mmm yyyy'), ...
+                    datestr(hazard.tc_track.datenum(end),'dd mmm yyyy'));
+for node_i = 1:length(hazard.tc_track.lon)
+    v       = hazard.tc_track.MaxSustainedWind(node_i);
+    v_color = find (v < v_categories);
+    v_color = v_color(1);
+
+    if node_i<length(hazard.tc_track.lon)
+        kk.plot(hazard.tc_track.lon(node_i:node_i+1), hazard.tc_track.lat(node_i:node_i+1),...
+             'name',hazard.tc_track.name, 'description',description_str,...
+             'lineColor',colors_(v_color,:),...
+             'timeSpanBegin',datestr(hazard.tc_track.datenum(node_i),'yyyy-mm-ddTHH:MM:SSZ'),...
+             'timeSpanEnd' ,datestr(hazard.tc_track.datenum(end)+6/24,'yyyy-mm-ddTHH:MM:SSZ'));
+    end
+
+    kk.point(hazard.tc_track.lon(node_i), hazard.tc_track.lat(node_i),100,...
+         'description',description_str,...
+         'iconURL','http://maps.google.com/mapfiles/kml/shapes/donut.png',...
+         'iconScale',0.5,...
+         'iconColor',colors_(v_color,:),...
+         'timeSpanBegin',datestr(hazard.tc_track.datenum(node_i),'yyyy-mm-ddTHH:MM:SSZ'),...
+         'timeSpanEnd' ,datestr(hazard.tc_track.datenum(end)+6/24,'yyyy-mm-ddTHH:MM:SSZ')); 
+end    
+
+%% open visualition in google earth
+k.run    
+    
+
+
+
+    
+    
+    
+
