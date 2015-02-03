@@ -115,7 +115,7 @@ cmap3 = makeColorMap([205 150 205 ]/255, [93 71 139 ]/255, 2); %[255 153 18]/255
 cmap  = [cmap1; cmap2; cmap3];
 
 for r_i = 1:length(region_str)
-    [cbar asset_handles{r_i}]= plotclr(assets(r_i).Longitude, assets(r_i).Latitude, assets(r_i).Value, 's',markersize, 0,0,[],cmap,1,0); 
+    [cbar asset_handles{r_i}]= plotclr(assets(r_i).lon, assets(r_i).lat, assets(r_i).Value, 's',markersize, 0,0,[],cmap,1,0); 
     miv(r_i) = min(assets(r_i).Value);
     mav(r_i) = max(assets(r_i).Value);
 end

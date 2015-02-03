@@ -89,20 +89,20 @@ if ~isstruct(EDS)
 end
 
 c_index = entity.assets.centroid_index;
-if size(entity.assets.Longitude,2) ~= size(EDS.ED_per_cu(c_index),1)
+if size(entity.assets.lon,2) ~= size(EDS.ED_per_cu(c_index),1)
     fprintf('Number of centroids do not match. Unable to proceed')
     fig = []; return
 end
 
 % create the figure
-scale  = max(entity.assets.Longitude) - min(entity.assets.Longitude);
-scale2 =(max(entity.assets.Longitude) - min(entity.assets.Longitude))/...
-        (min(max(entity.assets.Latitude),80)-max(min(entity.assets.Latitude),-60));
+scale  = max(entity.assets.lon) - min(entity.assets.lon);
+scale2 =(max(entity.assets.lon) - min(entity.assets.lon))/...
+        (min(max(entity.assets.lat),80)-max(min(entity.assets.lat),-60));
 height = 0.5;
 if height*scale2 > 1.2; height = 1.2/scale2; end
 ax_buffer = 3; %ax_buffer = 30;
-ax_lim = [min(entity.assets.Longitude)-scale/ax_buffer          max(entity.assets.Longitude)+scale/ax_buffer ...
-          max(min(entity.assets.Latitude),-60)-scale/ax_buffer  min(max(entity.assets.Latitude),80)+scale/ax_buffer];    
+ax_lim = [min(entity.assets.lon)-scale/ax_buffer          max(entity.assets.lon)+scale/ax_buffer ...
+          max(min(entity.assets.lat),-60)-scale/ax_buffer  min(max(entity.assets.lat),80)+scale/ax_buffer];    
 markersizepp = polyfit([15 62],[5 3],1);
 markersize   = polyval(markersizepp,ax_lim(2) - ax_lim(1));
 markersize(markersize<2) = 2;
@@ -111,16 +111,16 @@ markersize(markersize<2) = 2;
 fig = climada_figuresize(height,height*scale2+0.15);
 if Percentage_Of_Value_Flag
     dam_TIV = EDS.ELD_per_cu(c_index) ./ entity.assets.Value' *100;
-    cbar = plotclr(entity.assets.Longitude, entity.assets.Latitude, dam_TIV,'s',markersize,1,...
+    cbar = plotclr(entity.assets.lon, entity.assets.lat, dam_TIV,'s',markersize,1,...
                [],[],[],0,1);    
-    %cbar = plotclr(entity.assets.Longitude, entity.assets.Latitude, dam_TIV,'s',markersize,1,...
+    %cbar = plotclr(entity.assets.lon, entity.assets.lat, dam_TIV,'s',markersize,1,...
     %           0,max(dam_TIV),[],0,0); 
     name_str = sprintf('Expected damage \n for %s', entity.assets.filename);       
 else
     miv = 1; mav = 7;
-    cbar = plotclr(entity.assets.Longitude, entity.assets.Latitude, EDS.ED_per_cu(c_index),'s',markersize,1,...
+    cbar = plotclr(entity.assets.lon, entity.assets.lat, EDS.ED_per_cu(c_index),'s',markersize,1,...
                miv,mav,[],[],1);
-    %cbar = plotclr(entity.assets.Longitude, entity.assets.Latitude, ELS.EL_per_cu(c_index),'s',markersize,1,...
+    %cbar = plotclr(entity.assets.lon, entity.assets.lat, ELS.EL_per_cu(c_index),'s',markersize,1,...
     %           [],[],[],[],1); 
     name_str = sprintf('Expected damage \n for %s', entity.assets.filename);           
 end
@@ -133,7 +133,7 @@ set(fig,'Name',name_str)
 % figure;plot(sort(dam_TIV),'.-')
 
 % colormap(flipud(hot))
-% cbar = plotclr(entity.assets.Longitude, entity.assets.Latitude, ELS.EL_per_cu,'s',markersize,1,...
+% cbar = plotclr(entity.assets.lon, entity.assets.lat, ELS.EL_per_cu,'s',markersize,1,...
 %                [],[],[],[],1); 
 %  plotclr(x,y,v, marker, markersize, colorbar_on, 
 % miv, mav, map, zero_off, v_exp)          

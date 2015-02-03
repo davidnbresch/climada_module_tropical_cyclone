@@ -1,4 +1,4 @@
-function [centroids hazard] = climada_centroids_hazard_expand(centroids_ori, hazard_ori, tc_track)
+function [centroids,hazard] = climada_centroids_hazard_expand(centroids_ori, hazard_ori, tc_track)
 % UNDOCUMENTED
 %-
 
@@ -80,8 +80,8 @@ end
 % centroids_ori = centroids;
 climada_figuresize(0.6,0.8);
 climada_plot_world_borders
-plot(centroids_ori.Longitude, centroids_ori.Latitude,'.r')
-titlestr = sprintf('Original centroids, %d',size(centroids_ori.Longitude,2));
+plot(centroids_ori.lon, centroids_ori.lat,'.r')
+titlestr = sprintf('Original centroids, %d',size(centroids_ori.lon,2));
 title(titlestr);
 
 
@@ -90,8 +90,8 @@ title(titlestr);
 % wind footprint and loss footprint
 % centroids    = centroids_ori;
 grid_resolution  = 1; % regular grids resolution in degree
-lon = [min(centroids_ori.Longitude) max(centroids_ori.Longitude)];
-lat = [min(centroids_ori.Latitude ) max(centroids_ori.Latitude )];
+lon = [min(centroids_ori.lon) max(centroids_ori.lon)];
+lat = [min(centroids_ori.lat ) max(centroids_ori.lat )];
 
 % for US
 % lon = [-100 -70];
@@ -102,10 +102,10 @@ lat = lat(1):grid_resolution:lat(2);
 [lon,lat] = meshgrid(lon,lat);
 no_cen                      = numel(lon);
 centroids_ext.centroid_ID   = 1:no_cen;
-centroids_ext.Longitude     = lon(:)';
-centroids_ext.Latitude      = lat(:)';
-centroids_ext.lon           = centroids_ext.Longitude;
-centroids_ext.lat           = centroids_ext.Latitude;
+centroids_ext.lon     = lon(:)';
+centroids_ext.lat      = lat(:)';
+centroids_ext.lon           = centroids_ext.lon;
+centroids_ext.lat           = centroids_ext.lat;
 a = cell(1,no_cen);
 for a_i = 1:no_cen
     a{a_i} = 'sea';
@@ -119,10 +119,10 @@ centroids_ext = climada_centroids_distance_to_coast(centroids_ext, [], 1);
 
 %% MERGE THE EXTENDED CENTROIDS WITH THE ORIGINAL CENTROIDS
 centroids              = centroids_ori;
-centroids.Longitude    = [centroids_ori.Longitude     centroids_ext.Longitude];
-centroids.Latitude     = [centroids_ori.Latitude      centroids_ext.Latitude];
+centroids.lon    = [centroids_ori.lon     centroids_ext.lon];
+centroids.lat     = [centroids_ori.lat      centroids_ext.lat];
 % no_cen                 = numel(lon);
-centroids.centroid_ID  = 1:length(centroids.Latitude);
+centroids.centroid_ID  = 1:length(centroids.lat);
 centroids.onLand       = [centroids_ori.onLand        centroids_ext.onLand];
 centroids.dist_to_coast= [centroids_ori.dist_to_coast centroids_ext.dist_to_coast];
 centroids.country_name = [centroids_ori.country_name  centroids_ext.country_name];
@@ -130,10 +130,10 @@ centroids.country_name = [centroids_ori.country_name  centroids_ext.country_name
 % visualize for check
 climada_figuresize(0.6,0.8);
 climada_plot_world_borders
-plot(centroids.Longitude, centroids.Latitude,'.r')
+plot(centroids.lon, centroids.lat,'.r')
 hold on
-plot(centroids_ori.Longitude, centroids_ori.Latitude,'.k')
-titlestr = sprintf('Merge centroids, %d',size(centroids.Longitude,2));
+plot(centroids_ori.lon, centroids_ori.lat,'.k')
+titlestr = sprintf('Merge centroids, %d',size(centroids.lon,2));
 title(titlestr);
 
 
@@ -160,10 +160,10 @@ hazard = climada_hazard_merge(hazard_ori, hazard_ext);
 % lon = lon(1):grid_resolution:lon(2);
 % lat = lat(1):grid_resolution:lat(2);
 % [lon,lat] = meshgrid(lon,lat);
-% centroids.Longitude    = [centroids_ori.Longitude lon(:)'];
-% centroids.Latitude     = [centroids_ori.Latitude  lat(:)'];
+% centroids.lon    = [centroids_ori.lon lon(:)'];
+% centroids.lat     = [centroids_ori.lat  lat(:)'];
 % no_cen                 = numel(lon);
-% centroids.centroid_ID  = 1:length(centroids.Latitude);
+% centroids.centroid_ID  = 1:length(centroids.lat);
 % centroids.onLand       = [centroids_ori.onLand zeros(1,no_cen)];
 % a = cell(1,no_cen);
 % for a_i = 1:no_cen
@@ -174,7 +174,7 @@ hazard = climada_hazard_merge(hazard_ori, hazard_ext);
 % 
 % % centroids on land
 % climada_figuresize(0.6,0.8)
-% cbar = plotclr(centroids_ext.Longitude, centroids_ext.Latitude, centroids_ext.onLand,'s', 2, 0, [], [], cmap, [], 1);    
+% cbar = plotclr(centroids_ext.lon, centroids_ext.lat, centroids_ext.onLand,'s', 2, 0, [], [], cmap, [], 1);    
 
 
 

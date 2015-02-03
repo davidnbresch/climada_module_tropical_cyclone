@@ -111,14 +111,14 @@ if size(find(windfield>5),2)>5 %any(full(windfield))
             0.7098    0.1333         0;
             0.5020         0    0.5020;
             0.2941         0    0.5098];
-    %cbar = plotclr(centroids.Longitude, centroids.Latitude, full(windfield), 's',4,1,-1,[],cmap_,0,0);
+    %cbar = plotclr(centroids.lon, centroids.lat, full(windfield), 's',4,1,-1,[],cmap_,0,0);
     %set(get(cbar,'ylabel'),'String', 'Wind speed (m s^{-1})' ,'fontsize',8);
     
     % % create gridded values
     windfield = full(windfield);
     w_index   = windfield>5;
-    centroids.Longitude = hazard.lon(w_index);
-    centroids.Latitude  = hazard.lat(w_index);
+    centroids.lon = hazard.lon(w_index);
+    centroids.lat  = hazard.lat(w_index);
     [X, Y, gridded_VALUE] = climada_gridded_VALUE(windfield(w_index), centroids);
     gridded_max       = max(max(gridded_VALUE));
     gridded_max_round = 70; %45
@@ -136,7 +136,7 @@ if size(find(windfield>5),2)>5 %any(full(windfield))
 end
 climada_plot_world_borders(0.7,[], [], 1)
 climada_plot_tc_track_stormcategory(tc_track, 4, [], 1);
-% plot(centroids.Longitude,centroids.Latitude,'.k','markersize',6,'linewidth',1)
+% plot(centroids.lon,centroids.lat,'.k','markersize',6,'linewidth',1)
 
 if ~isfield(tc_track,'category'),tc_track=climada_tc_stormcategory(tc_track);end
 

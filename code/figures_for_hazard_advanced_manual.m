@@ -26,7 +26,7 @@ climada_tc_track_wind_decay
 %% CENTROIDS
 climada_figuresize(0.6,0.8);
 climada_plot_world_borders
-plot(centroids.Longitude, centroids.Latitude,'.r')
+plot(centroids.lon, centroids.lat,'.r')
 
 climada_centroids_read
 
@@ -38,10 +38,10 @@ lat = [  20  45];
 lon = lon(1):grid_resolution:lon(2);
 lat = lat(1):grid_resolution:lat(2);
 [lon,lat] = meshgrid(lon,lat);
-centroids.Longitude    = [centroids_ori.Longitude lon(:)'];
-centroids.Latitude     = [centroids_ori.Latitude  lat(:)'];
+centroids.lon    = [centroids_ori.lon lon(:)'];
+centroids.lat     = [centroids_ori.lat  lat(:)'];
 no_cen                 = numel(lon);
-centroids.centroid_ID  = 1:length(centroids.Latitude);
+centroids.centroid_ID  = 1:length(centroids.lat);
 centroids.onLand       = [centroids_ori.onLand zeros(1,no_cen)];
 a = cell(1,no_cen);
 for a_i = 1:no_cen
@@ -52,7 +52,7 @@ centroids.dist_to_coast = [centroids_ori.dist_to_coast zeros(1,no_cen)];
 
 % centroids on land
 climada_figuresize(0.6,0.8)
-cbar = plotclr(centroids_ext.Longitude, centroids_ext.Latitude, centroids_ext.onLand,'s', 2, 0, [], [], cmap, [], 1);    
+cbar = plotclr(centroids_ext.lon, centroids_ext.lat, centroids_ext.onLand,'s', 2, 0, [], [], cmap, [], 1);    
 
 
 
@@ -66,7 +66,7 @@ centroids    = climada_centroids_distance_to_coast(centroids, coastline, check_f
 %% WIND FOOTPRINT
 climada_figuresize(0.6,0.8);
 climada_plot_world_borders
-plot(centroids.Longitude, centroids.Latitude,'.r')
+plot(centroids.lon, centroids.lat,'.r')
 
 [res centroids] = climada_tc_windfield(tc_track(t_i), centroids, 1, 0, 1);
 
@@ -118,7 +118,7 @@ climada_figuresize(0.6,0.8);
 hazard_     = hazard;
 hazard_.arr = hazard.intensity(t_i,:);
 climada_plot_tc_footprint(hazard_, tc_track(t_i), nametag)
-% plot(centroids.Longitude, centroids.Latitude,'.k')
+% plot(centroids.lon, centroids.lat,'.k')
 
 figure
 plot(sort(hazard_.arr(:)))
@@ -143,7 +143,7 @@ climada_plot_tc_footprint(hazard_, tc_track(t_i), nametag)
 % distance to coast
 climada_figuresize(0.6,0.8);
 climada_plot_world_borders
-cbar = plotclr(centroids.Longitude, centroids.Latitude, centroids.dist_to_coast, 's',4,1,10,[],[],0,0);
+cbar = plotclr(centroids.lon, centroids.lat, centroids.dist_to_coast, 's',4,1,10,[],[],0,0);
 axis equal
 plotclr(x,y,v, marker, markersize, colorbar_on, miv, mav, map, zero_off, v_exp)
     
@@ -162,10 +162,10 @@ lat = lat(1):grid_resolution:lat(2);
 [lon,lat] = meshgrid(lon,lat);
 no_cen                      = numel(lon);
 centroids_ext.centroid_ID   = 1:no_cen;
-centroids_ext.Longitude     = lon(:)';
-centroids_ext.Latitude      = lat(:)';
-centroids_ext.lon           = centroids_ext.Longitude;
-centroids_ext.lat           = centroids_ext.Latitude;
+centroids_ext.lon     = lon(:)';
+centroids_ext.lat      = lat(:)';
+centroids_ext.lon           = centroids_ext.lon;
+centroids_ext.lat           = centroids_ext.lat;
 
 centroids_ext = climada_tc_on_land(centroids_ext);
 centroids_ext = rmfield(centroids_ext,'lon');
