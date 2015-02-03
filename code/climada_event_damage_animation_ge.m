@@ -217,7 +217,6 @@ for i = 1:no_levels
     colorHex(i,:) = kml.color2kmlHex([colors_(i,:) transp]);
 end
 
-<<<<<<< HEAD
 kk = k.newFolder('Damage');
 % plot damage
 for step_i = 1:n_steps   
