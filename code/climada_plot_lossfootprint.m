@@ -114,7 +114,7 @@ if any(full(event_loss))
     %         0.7678    0.2667    0.0400;
     %         0.7098    0.1333         0];
     cmap_ = makeColorMap([255 236 139]/255, [135 206 235]/255, [39 64 139]/255,9);
-    cbar  = plotclr(centroids.Longitude, centroids.Latitude, event_loss, 's',6,1,[],[],cmap_,0,1);
+    cbar  = plotclr(centroids.lon, centroids.lat, event_loss, 's',6,1,[],[],cmap_,0,1);
     set(get(cbar,'ylabel'),'String', 'Loss (USD, exponential)' ,'fontsize',8);
     
     % % create gridded values
@@ -126,7 +126,7 @@ if any(full(event_loss))
 end
 climada_plot_world_borders(0.7,[], [], 1)
 climada_plot_tc_track_stormcategory(tc_track, 3, [], 0.3);
-% plot(centroids.Longitude,centroids.Latitude,'.k','markersize',0.2,'linewidth',0.1)
+% plot(centroids.lon,centroids.lat,'.k','markersize',0.2,'linewidth',0.1)
 
 % if any(full(windfield))
 %     caxis([0 gridded_max_round])      

@@ -174,8 +174,8 @@ for i = 1:no_levels
     colorHex(i,:) = kml.color2kmlHex([colors_(i,:) transp]);
 end
  
-kk = k.newFolder('Assets');
 % plot assets
+kk = k.newFolder('Assets');
 res_deg   = max(diff(hazard.assets.lon(1:2)), diff(hazard.assets.lat(1:2)))/2;
 val_log10 = log10(hazard.assets.Value);
 for i = 1:length(val_categories)-1
@@ -217,6 +217,7 @@ for i = 1:no_levels
     colorHex(i,:) = kml.color2kmlHex([colors_(i,:) transp]);
 end
 
+<<<<<<< HEAD
 kk = k.newFolder('Damage');
 % plot damage
 for step_i = 1:n_steps   
@@ -250,7 +251,6 @@ for step_i = 1:n_steps
         end
     end
 end
-
 
 
 %% plot hazard intensity

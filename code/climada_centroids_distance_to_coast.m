@@ -1,5 +1,4 @@
 function centroids = climada_centroids_distance_to_coast(centroids, coastline, check_figure)
-
 % calculate distance to coast in km for every centroid and add information
 % in the field centroids.dist_to_coast
 % NAME:
@@ -59,7 +58,7 @@ if ~isstruct(centroids) % load, if filename given
     end
 end
 
-[a, b] = size(centroids.Longitude);
+[a, b] = size(centroids.lon);
 
 if isfield(centroids,'onLand')
     onLandindex = centroids.onLand == 1;
@@ -76,7 +75,7 @@ else
     centroids.dist_to_coast = zeros([a b]);
     min_dd                  = zeros([a b]);
 
-    no_centroids = length(centroids.Longitude(onLandindex));
+    no_centroids = length(centroids.lon(onLandindex));
     t0           = clock;
     msgstr       = sprintf('Add distance to coast for %d centroids\n', no_centroids);
     if climada_global.waitbar,h = waitbar(0, msgstr, 'Name','Calculate distance to coast for centroids');end
@@ -86,7 +85,7 @@ else
         %calculate distance to all coastline points and find closest, and
         %therrefore minimal distance to coast (in km)
         cen_ii = index_(cen_i);
-        dd     = climada_geo_distance(centroids.Longitude(cen_ii), centroids.Latitude(cen_ii),...
+        dd     = climada_geo_distance(centroids.lon(cen_ii), centroids.lat(cen_ii),...
                                       coastline.lon, coastline.lat)/1000;                          
         [min_dd(cen_i), pos] = min(dd);
 
@@ -105,8 +104,8 @@ if climada_global.waitbar,close(h);end % dispose waitbar
 
 if check_figure
     delta   = 2;
-    axislim = [min(centroids.Longitude(onLandindex))-delta  max(centroids.Longitude(onLandindex))+delta ...
-               min(centroids.Latitude (onLandindex))-delta  max(centroids.Latitude (onLandindex))+delta];
+    axislim = [min(centroids.lon(onLandindex))-delta  max(centroids.lon(onLandindex))+delta ...
+               min(centroids.lat (onLandindex))-delta  max(centroids.lat (onLandindex))+delta];
     fig_relation = diff(axislim(1:2))/diff(axislim(3:4));
     if fig_relation<1
         fig_height = 0.6; 
@@ -118,11 +117,11 @@ if check_figure
     fig = climada_figuresize(fig_height, fig_width);
     climada_plot_world_borders
     cmap = flipud(jet);
-    cbar = plotclr(centroids.Longitude(logical(onLandindex)), centroids.Latitude(logical(onLandindex)), centroids.dist_to_coast(logical(onLandindex)),...
+    cbar = plotclr(centroids.lon(logical(onLandindex)), centroids.lat(logical(onLandindex)), centroids.dist_to_coast(logical(onLandindex)),...
                    's', 2, 1, [], [], cmap, [], 1);
     set(get(cbar,'ylabel'),'String', 'Distance to coast (km)','fontsize',11)
     hold on
-    plot(centroids.Longitude(~onLandindex), centroids.Latitude(~onLandindex),'.','color',[139 136 120]/255)
+    plot(centroids.lon(~onLandindex), centroids.lat(~onLandindex),'.','color',[139 136 120]/255)
     axis equal
     axis(axislim)
 end

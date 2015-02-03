@@ -1,5 +1,4 @@
 function hazard = climada_hazard_distance_to_coast_USA(hazard, centroids, tc_track, check_figure)
-
 % Weakening of hazard, namely maximum sutained wind over land depending on
 % distance to coast 
 % NAME:
@@ -75,17 +74,17 @@ if ~isstruct(centroids) % load, if filename given
 end
 
 % check if hazard and centroids go together
-if length(centroids.Longitude) ~= size(hazard.intensity,2)
+if length(centroids.lon) ~= size(hazard.intensity,2)
     fprintf('%d centroids don''t match with hazard file (%d centroids). Unable to proceed.\n',...
-            length(centroids.Longitude),  size(hazard.intensity,2))
+            length(centroids.lon),  size(hazard.intensity,2))
     hazard = [];    
     return
 end
 
 % check for on land information for centroids
 if ~isfield(centroids,'onLand')
-    centroids.lon = centroids.Longitude;
-    centroids.lat = centroids.Latitude;
+    centroids.lon = centroids.lon;
+    centroids.lat = centroids.lat;
     centroids     = climada_tc_on_land(centroids);
     centroids     = rmfield(centroids_ext,'lon');
     centroids     = rmfield(centroids_ext,'lat');
@@ -317,8 +316,8 @@ hazard.intensity(cat_345',:)= bsxfun(@times,hazard.intensity(cat_345',:),wind_we
 % 
 % % if check_figure
 % %     delta   = 2;
-% %     axislim = [min(centroids.Longitude(onLandindex))-delta  max(centroids.Longitude(onLandindex))+delta ...
-% %                min(centroids.Latitude (onLandindex))-delta  max(centroids.Latitude (onLandindex))+delta];
+% %     axislim = [min(centroids.lon(onLandindex))-delta  max(centroids.lon(onLandindex))+delta ...
+% %                min(centroids.lat (onLandindex))-delta  max(centroids.lat (onLandindex))+delta];
 % %     fig_relation = diff(axislim(1:2))/diff(axislim(3:4));
 % %     if fig_relation<1
 % %         fig_height = 0.6; 
@@ -329,7 +328,7 @@ hazard.intensity(cat_345',:)= bsxfun(@times,hazard.intensity(cat_345',:),wind_we
 % %     end   
 % %     fig = climada_figuresize(fig_height, fig_width);
 % %     climada_plot_world_borders
-% %     cbar = plotclr(centroids.Longitude(onLandindex), centroids.Latitude(onLandindex), centroids.dist_to_coast(onLandindex),...
+% %     cbar = plotclr(centroids.lon(onLandindex), centroids.lat(onLandindex), centroids.dist_to_coast(onLandindex),...
 % %                    's', 2, 1, [], [], [], [], 1);
 % %     set(get(cbar,'ylabel'),'String', 'Distance to coast (km)','fontsize',11)
 % %     axis equal
