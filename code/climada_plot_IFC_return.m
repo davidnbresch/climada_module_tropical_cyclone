@@ -42,7 +42,11 @@ if ~exist('hazard'            ,'var'), hazard             = []; end
 if ~exist('centroids'         ,'var'), centroids          = []; end
 if ~exist('important_centroid','var'), important_centroid = []; end
 if ~exist('check_printplot'   ,'var'), check_printplot    = []; end
+<<<<<<< HEAD
+if ~exist('check_xlog'        ,'var'), check_xlog         = []; end
+=======
 if ~exist('check_xlog'        ,'var'), check_xlog         = 0 ; end
+>>>>>>> 5987dc3e92369aef9b1219a4affe9d03cdc4b25a
 
 h =[];
 
@@ -50,7 +54,7 @@ h =[];
 if isempty(hazard) % local GUI
     hazard               = [climada_global.data_dir filesep 'hazards' filesep '*.mat'];
     default_hazard       = [climada_global.data_dir filesep 'hazards' filesep 'select hazard .mat'];
-    [filename, pathname] = uigetfile(hazard, 'Select hazard event set for ELS calculation:',default_hazard);
+    [filename, pathname] = uigetfile(hazard, 'Select hazard event set for EDS calculation:',default_hazard);
     if isequal(filename,0) || isequal(pathname,0)
         return; % cancel
     else
@@ -170,7 +174,7 @@ end
 
 
 %% set colors
-color1 = [255  122  0;... % orange
+color1 = [255  69   0;... % orange
            67 110 238;... % light blue
           102 205   0;... % light green 
           238 130 238;... % light violet
@@ -178,7 +182,7 @@ color1 = [255  122  0;... % orange
           128 128 128     % gray
           ]/255;
      
-color2 = [255  20  20;... % red
+color2 = [220  20  60;... % red
             0   0 139;... % blue
             0 139   0;... % green 
             85 26 139;... % violet
@@ -197,7 +201,7 @@ end
 %% figure
 %  plot intensity vs frequency
 
-fig = climada_figuresize(0.6, 1.1);
+% fig = climada_figuresize(0.6, 1.1);
 
 for imp_i = length(important_centroid):-1:1
     
@@ -256,7 +260,7 @@ end
 
 if check_printplot %(>=1)
     foldername  = [filesep 'results' filesep 'intensity_return_' [name{:}] '.pdf'];
-    print(fig,'-dpdf',[climada_global.data_dir foldername])
+    print(gcf,'-dpdf',[climada_global.data_dir foldername])
     close
     fprintf('saved 1 FIGURE in folder %s \n', foldername);
 end
