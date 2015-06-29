@@ -146,7 +146,8 @@ if exist(admin_regions_shapefile,'file')
         chosen_admin={}; % init
         for adm_i=1:adm_lvl
             % select from map
-            admin_regions_shapefile = [module_data_dir filesep 'entities' filesep ISO3 '_adm' filesep ISO3 '_adm' num2str(adm_i) '.shp'];
+            admin_regions_shapefile = [climada_global.data_dir filesep 'entities' filesep ISO3 '_adm' filesep ISO3 '_adm' num2str(adm_i) '.shp'];
+            %admin_regions_shapefile = [module_data_dir filesep 'entities' filesep ISO3 '_adm' filesep ISO3 '_adm' num2str(adm_i) '.shp'];
             admin_shapes = climada_shaperead(admin_regions_shapefile,1);
             shape_ndx_s = 1:length(admin_shapes);
             if ~isempty(chosen_admin)
