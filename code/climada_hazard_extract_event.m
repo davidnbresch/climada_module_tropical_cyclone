@@ -44,10 +44,16 @@ if isempty(event_i)
     event_i = input(sprintf('choose an event of interest (1-%i): ',length(hazard.event_ID)));
 end
 
-if ~isnumeric(event_i) || event_i > length(hazard.event_ID) || event_i < 1
+if ~isnumeric(event_i) || max(event_i) > length(hazard.event_ID) || any(event_i) == 0
     cprintf([1 0 0], 'ERROR: invalid event chosen')
     return
 end
+
+% find any negative event numbers (for which n = -neg_event_i shall 
+% correspond to the nth largest event
+neg_event_i = event_i(event_i<0);
+[~,event_ii] = sort(sum(full(hazard.intensity),2));
+event_i = [event_i(event_i>0) event_ii(-neg_event_i)'];
 
 event = hazard; %init
 
@@ -60,7 +66,7 @@ if n_events == n_centroids
 end
 
 % check for irrelevant fields and delete
-rm_flds   = {'orig _years' 'reference_year' 'arr_sort' 'arr_ori_sort' 'R' 'R_ori' 'intensity_fit_ori' 'intensity_fit' 'R_fit'};
+rm_flds   = {'arr_sort' 'arr_ori_sort' 'R' 'R_ori' 'intensity_fit_ori' 'intensity_fit' 'R_fit'};
 rm_ndx    = isfield(event, rm_flds);
 if any(rm_ndx),   event = rmfield(event, rm_flds(rm_ndx));      end
 
