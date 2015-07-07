@@ -1,4 +1,4 @@
-function shape_plotter(shapes,label_att,varargin)
+function shape_plotter(shapes,label_att,lon_fieldname,lat_fieldname,varargin)
 % shape_plotter
 % MODULE:
 %   climada core
@@ -9,24 +9,29 @@ function shape_plotter(shapes,label_att,varargin)
 % CALLING SEQUENCE:
 %   shape_plotter(shapes,label_att,varargin)
 % EXAMPLE:
-%   shape_plotter(shapes,'attribute name','linewidth',2,'color','r')
+%   shape_plotter(shapes,'attribute name','X','Y','linewidth',2,'color','r')
+%   shape_plotter(shapes,'attribute name','x','y','linewidth',2,'color','r')
 % INPUTS: 
-%   shapes:     struct with shape file info must have fields X and Y
-%   label_att:  the fieldname containing the string with which you wish to
-%               label each shape
+%   shapes         : struct with shape file info must have fields X and Y
 % OPTIONAL INPUT PARAMETERS:
-%   varargin:   any property value pair compatible with Matlab's plot func
+%   label_att      : the fieldname containing the string with which you wish to
+%                    label each shape
+%   lon_fieldname  : specify fieldname where to take lon information, default ".X"
+%   lat_fieldname  : specify fieldname where to take lat information, default ".Y"
+%   varargin       : any property value pair compatible with Matlab's plot func
 % OUTPUTS:
 % MODIFICATION HISTORY:
 % Gilles Stassen, gillesstassen@hotmail.com, 18052015, init
+% Lea Mueller, muellele@gmail.com, 20150607, add lon_fieldname and lat_fieldname to specify fieldnames of lon/lat coordinates
 %-
 
 global climada_global
 if ~climada_init_vars; return; end
 
-if ~exist('shapes',     'var'),  return;                end
-% if ~exist('name',       'var'),  name = '';             end
-if ~exist('label_att',  'var'),  label_att = '';        end
+if ~exist('shapes'       ,'var'), return;             end
+if ~exist('label_att'    ,'var'), label_att     = ''; end
+if ~exist('lon_fieldname','var'), lon_fieldname = ''; end
+if ~exist('lat_fieldname','var'), lat_fieldname = ''; end
 
 if ~isstruct(shapes)
     shapes_file = shapes; shapes = [];
@@ -42,8 +47,11 @@ if ~isstruct(shapes)
     end
 end
 
-if ~isfield(shapes,'X') || ~isfield(shapes,'Y')
-    cprintf([1 0 0],'ERROR: shapes must have attributes X and Y\n')
+if isempty(lon_fieldname), lon_fieldname = 'X'; end
+if isempty(lat_fieldname), lat_fieldname = 'Y'; end
+
+if ~isfield(shapes,lon_fieldname) || ~isfield(shapes,lat_fieldname)
+    cprintf([1 0 0],'ERROR: shapes must have attributes %s and %s\n', lon_fieldname, lat_fieldname)
     return;    
 end
 
@@ -60,13 +68,16 @@ else
     vararg_str = ',''linewidth'',1,''color'',[81 81 81]/255';
 end
 
-eval_str = ['h = plot3(shapes(shape_i).X, shapes(shape_i).Y,Z' vararg_str ');'];
+eval_str = sprintf('h = plot3(shapes(shape_i).%s, shapes(shape_i).%s,Z %s);',lon_fieldname, lat_fieldname, vararg_str);
+% eval_str = ['h = plot3(shapes(shape_i).X, shapes(shape_i).Y,Z' vararg_str ');'];
 hold on
 % legend('-DynamicLegend');
 
 % plot each shape in struct
 for shape_i = 1:length(shapes)
-    Z = ones(size(shapes(shape_i).X)).*(1000000000000);
+    eval_str_Z = sprintf('Z=ones(size(shapes(shape_i).%s)).*(1000000000000);',lon_fieldname);
+    eval(eval_str_Z)
+    %Z = ones(size(shapes(shape_i).X)).*(1000000000000);
     eval(eval_str);
     if ~isempty(label_att) && ischar(label_att)
         if isfield(shapes,'BoundingBox')
