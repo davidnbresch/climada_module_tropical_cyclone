@@ -65,7 +65,10 @@ if isfield(tc_track,'orig_event_flag')
 else
     no_hist = length(tc_track);
 end
+% comment out in case there is a special selection of tracks, and not a
+% constant number of generated tracks in between the historical tracks
 no_generated = length(tc_track)/no_hist;
+% no_generated = 1;
 
 
 % check if max sustained wind in knots
