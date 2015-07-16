@@ -20,6 +20,7 @@ function event = climada_hazard_extract_event(hazard,event_i)
 %           containing the events specified by the event numbers in event_i
 % MODIFICATION HISTORY:
 % Gilles Stassen, gillesstassen@hotmail.com, 20150428
+% Gilles Stassen, 20150706, multiple events, negative input for nth largest event
 %-
 
 global climada_global
