@@ -90,11 +90,8 @@ if climada_global_border_file_check
     end
 end
 
-% the module's data folder:
-% module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 % the shape file with higher resolution (than default climada) for country
 country_shapefile = [climada_global.data_dir filesep 'entities' filesep ISO3 '_adm' filesep ISO3 '_adm0.shp'];
-% country_shapefile = [module_data_dir filesep 'entities' filesep ISO3 '_adm' filesep ISO3 '_adm0.shp'];
 
 % download border shapefiles
 admin_dir = fileparts(country_shapefile);
@@ -126,7 +123,6 @@ if adm_lvl > adm_max || adm_lvl < 0
     return;
 end
 % redefine filename according to chosen admin level
-% admin_regions_shapefile = [module_data_dir filesep 'entities' filesep ISO3 '_adm' filesep ISO3 '_adm' num2str(adm_lvl) '.shp'];
 admin_regions_shapefile = [climada_global.data_dir filesep 'entities' filesep ISO3 '_adm' filesep ISO3 '_adm' num2str(adm_lvl) '.shp'];
 clear adm_count files f_i fE
 
@@ -147,7 +143,6 @@ if exist(admin_regions_shapefile,'file')
         for adm_i=1:adm_lvl
             % select from map
             admin_regions_shapefile = [climada_global.data_dir filesep 'entities' filesep ISO3 '_adm' filesep ISO3 '_adm' num2str(adm_i) '.shp'];
-            %admin_regions_shapefile = [module_data_dir filesep 'entities' filesep ISO3 '_adm' filesep ISO3 '_adm' num2str(adm_i) '.shp'];
             admin_shapes = climada_shaperead(admin_regions_shapefile,1);
             shape_ndx_s = 1:length(admin_shapes);
             if ~isempty(chosen_admin)
@@ -163,7 +158,7 @@ if exist(admin_regions_shapefile,'file')
             
             msg_str = sprintf('select admin level %i region of interest',adm_i);
             figure('name',msg_str,'color','w','outerposition',[200 148 1000 720]); hold on
-            %             axis([shapes(country_shape_ndx).BoundingBox(:,1)' shapes(country_shape_ndx).BoundingBox(:,2)'])
+%             axis([shapes(country_shape_ndx).BoundingBox(:,1)' shapes(country_shape_ndx).BoundingBox(:,2)'])
             for shape_i = 1: length(admin_shapes)
                 % plot borders
                 plot(admin_shapes(shape_i).X,admin_shapes(shape_i).Y,'color',[81 81 81]./255,'linewidth',2)
@@ -207,7 +202,7 @@ if exist(admin_regions_shapefile,'file')
             for shape_i = 1 : length(admin_shapes)
                 if strcmp(admin_shapes(shape_i).(fld_NAME), admin_name(click_i))  %strfind(eval(strcat('admin_shapes(i).NAME_',num2str(adm_lvl))), admin_name)
                     ID = admin_shapes(shape_i).(fld_ID);  %ID = eval(strcat('admin_shapes(i).ID_',num2str(adm_lvl)));
-                    shape_ndx = shape_i;
+                    shape_ndx(click_i) = shape_i;
                     break;
                 end
                 if shape_i == numel(admin_shapes), fprintf('ERROR: %s not found',admin_name); return; end
@@ -241,10 +236,11 @@ if exist(admin_regions_shapefile,'file')
     
     % annotation (just to label admin region on plots):
     if adm_lvl > 0 && exist('shape_ndx','var') && nargout == 4
+        if ~iscell(admin_name),     admin_name = {admin_name};  end
         for loc_i = 1:length(admin_name)
-            location(loc_i).name   = ['  ' admin_name]; % first two spaces for nicer labeling
-            location(loc_i).lon    = median(admin_shapes(shape_ndx).X);
-            location(loc_i).lat    = median(admin_shapes(shape_ndx).Y);
+            location(loc_i).name   = ['  ' admin_name{loc_i}]; % first two spaces for nicer labeling
+            location(loc_i).lon    = median(admin_shapes(shape_ndx(loc_i)).X);
+            location(loc_i).lat    = median(admin_shapes(shape_ndx(loc_i)).Y);
         end
     end
     
