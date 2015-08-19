@@ -55,6 +55,7 @@ function res = climada_tc_windfield_fast(tc_track, centroids, equal_timestep, si
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20090728
 % David N. Bresch, david.bresch@gmail.com, 20150103, not faster than climada_tc_windfield any more
+% David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir introduced
 %-
 
 
@@ -106,9 +107,8 @@ end
 
 % prompt for centroids if not given
 if isempty(centroids)
-    centroids            = [climada_global.system_dir filesep '*.mat'];
-    centroids_default    = [climada_global.system_dir filesep 'Select centroids .mat'];
-    [filename, pathname] = uigetfile(centroids, 'Select centroids:',centroids_default);
+    centroids            = [climada_global.centroids_dir filesep '*.mat'];
+    [filename, pathname] = uigetfile(centroids, 'Select centroids:');
     if isequal(filename,0) || isequal(pathname,0)
         return; % cancel
     else

@@ -1,5 +1,6 @@
 function [centroids,hazard] = climada_centroids_hazard_expand(centroids_ori, hazard_ori, tc_track)
 % UNDOCUMENTED
+% David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir introduced
 %-
 
 if ~exist('centroids_ori', 'var'), centroids_ori = []; end
@@ -34,9 +35,8 @@ end
 
 % prompt for centroids_ori if not given
 if isempty(centroids_ori) % local GUI
-    centroids_ori               = [climada_global.data_dir filesep 'system' filesep '*.mat'];
-    centroids_ori_default       = [climada_global.data_dir filesep 'system' filesep 'choose centroids.mat'];
-    [filename, pathname] = uigetfile(centroids_ori, 'Open existing centroidst:',centroids_ori_default);
+    centroids_ori               = [climada_global.centroids_dir filesep '*.mat'];
+    [filename, pathname] = uigetfile(centroids_ori, 'Open existing centroidst:');
     if isequal(filename,0) || isequal(pathname,0)
         return; % cancel
     else

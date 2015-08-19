@@ -18,6 +18,7 @@ function climada_plot_lossfootprint(event_loss, centroids, tc_track, nametag)
 % RESTRICTIONS:
 % MODIFICATION HISTORY:
 % Lea Mueller, david.bresch@gmail.com, 20121205
+% David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir introduced
 %-
 
 global climada_global
@@ -33,9 +34,8 @@ if isempty(event_loss)
 end
 
 if isempty(centroids)
-    centroids               = [climada_global.system_dir filesep '*.mat'];
-    centroids_default       = [climada_global.system_dir filesep 'Select centroids .mat'];
-    [filename, pathname] = uigetfile(centroids, 'Select hazard set:',centroids_default);
+    centroids               = [climada_global.centroids_dir filesep '*.mat'];
+    [filename, pathname] = uigetfile(centroids, 'Select hazard set:');
     if isequal(filename,0) || isequal(pathname,0)
         return; % cancel
     else

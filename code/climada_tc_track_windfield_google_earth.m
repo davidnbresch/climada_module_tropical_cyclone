@@ -1,4 +1,3 @@
-
 function climada_tc_track_windfield_google_earth(tc_track,centroids,aggregation,google_earth_save)
 % climada_tc_track_windfield_google_earth
 % MODULE:
@@ -28,6 +27,7 @@ function climada_tc_track_windfield_google_earth(tc_track,centroids,aggregation,
 % Lea Mueller, muellele@gmail.com, 20110724
 % Lea Mueller, muellele@gmail.com, 20150123, changed nodetime_mat to datenum
 % Lea Mueller, muellele@gmail.com, 20150130, new kml toolbox
+% David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir introduced
 %-
 
 global climada_global
@@ -72,7 +72,7 @@ end
 
 %% prompt for centroids if not given
 if isempty(centroids)
-    centroids = [climada_global.system_dir filesep '*.mat'];
+    centroids = [climada_global.centroids_dir filesep '*.mat'];
     [filename, pathname] = uigetfile(centroids, 'Select centroids:');
     if isequal(filename,0) || isequal(pathname,0)
         return; % cancel
