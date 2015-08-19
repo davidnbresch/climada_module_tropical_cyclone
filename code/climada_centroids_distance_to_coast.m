@@ -22,6 +22,7 @@ function centroids = climada_centroids_distance_to_coast(centroids, coastline, c
 % RESTRICTIONS:
 % MODIFICATION HISTORY:
 % Lea Mueller, 20121203
+% David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir
 %-
 
 % init global variables
@@ -39,9 +40,8 @@ if isempty(coastline)
 end
 
 if isempty(centroids)
-    centroids            = [climada_global.system_dir filesep '*.mat'];
-    centroids_default    = [climada_global.system_dir filesep 'Select centroids .mat'];
-    [filename, pathname] = uigetfile(centroids, 'Select tc track set:',centroids_default);
+    centroids            = [climada_global.centroids_dir filesep '*.mat'];
+    [filename, pathname] = uigetfile(centroids, 'Select centroids:');
     if isequal(filename,0) || isequal(pathname,0)
         return; % cancel
     else

@@ -22,6 +22,7 @@ function hazard = climada_hazard_distance_to_coast(hazard, centroids, tc_track, 
 % RESTRICTIONS:
 % MODIFICATION HISTORY:
 % Lea Mueller, 20121203
+% David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir
 %-
 
 % init global variables
@@ -37,8 +38,7 @@ if ~exist('check_figure', 'var'), check_figure = []; end
 % prompt for hazard if not given
 if isempty(hazard) % local GUI
     hazard               = [climada_global.data_dir filesep 'hazards' filesep '*.mat'];
-    hazard_default       = [climada_global.data_dir filesep 'hazards' filesep 'choose a hazard.mat'];
-    [filename, pathname] = uigetfile(hazard, 'Open existing hazard event set:',hazard_default);
+    [filename, pathname] = uigetfile(hazard, 'Open existing hazard event set:');
     if isequal(filename,0) || isequal(pathname,0)
         return; % cancel
     else
@@ -56,9 +56,8 @@ hazard=climada_hazard2octave(hazard); % Octave compatibility for -v7.3 mat-files
 
 % prompt for centroids if not given
 if isempty(centroids)
-    centroids            = [climada_global.system_dir filesep '*.mat'];
-    centroids_default    = [climada_global.system_dir filesep 'Select centroids .mat'];
-    [filename, pathname] = uigetfile(centroids, 'Select centroids :',centroids_default);
+    centroids            = [climada_global.centroids_dir filesep '*.mat'];
+    [filename, pathname] = uigetfile(centroids, 'Select centroids :');
     if isequal(filename,0) || isequal(pathname,0)
         return; % cancel
     else
