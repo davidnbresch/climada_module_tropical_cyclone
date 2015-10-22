@@ -33,8 +33,9 @@ function hazard = climada_hazard_climate_screw(hazard, hazard_set_file, referenc
 %   hazard:     new hazard for a future reference year, given a climate
 %               change scenario specified by screw.
 % MODIFICATION HISTORY:
-%   Gilles Stassen, gillesstassen@hotmail.com, 20150421 based on original
+% Gilles Stassen, gillesstassen@hotmail.com, 20150421 based on original
 %           function climada_hazard_clim_scen_advanced by David N. Bresch & Lea Mueller
+% Lea Mueller, muellele@gmail.com, 20151021, do not change hazard if it corresponds already to the required year
 %-
 
 global climada_global
@@ -69,7 +70,7 @@ if ~isstruct(hazard)
     end
 end
 
-if ~ismember(hazard.peril_ID,{'TC' 'RF' 'TR' 'MA'})
+if ~ismember(hazard.peril_ID,{'TC' 'RF' 'TR' 'MA' 'LS'})
     cprintf([1 0 0], sprintf('ERROR: climate change does not apply to %s peril \n',hazard.peril_ID));
 elseif strcmp(hazard.peril_ID,'FL')
     fprintf('\t consider running climada_hazard_climate_screw on an RF or TR hazard \n')
@@ -115,7 +116,7 @@ elseif ~isstruct(screw) && ~strcmp(hazard.peril_ID,'TC')
 end
 
 if isempty(reference_year)
-    reference_year     = climada_global.future_reference_year;
+    reference_year = climada_global.future_reference_year;
 end
 fprintf('Reference year for hazard_cc: %d \n',reference_year)
 
@@ -128,30 +129,36 @@ for i = 1:length(screw)
     crit_ndx = ismember(hazard.(screw(i).hazard_crit),screw(i).criteria);
     
     % linearly interpolate from screw.year to desired reference year
-    time_frac = (reference_year-hazard.reference_year)/(screw(i).year-hazard.reference_year);
-    switch func2str(screw(i).bsxfun_op)
-        case '@times'
-            change = 1+ (screw(i).change-1) * time_frac;
-        case '@plus'
-            change = screw(i).change * time_frac;
-        otherwise 
-            change = screw(i).change;
-    end % crew(i).bsxfun_op
-    
-    % determine to which index crit_ndx corresponds (particularly relevant
-    % for intensity field), and change by desired amount
-    [fld_size_x, fld_size_y] = size(hazard_cc.(screw(i).hazard_fld));
-    if length(crit_ndx) == fld_size_x
-        hazard_cc.(screw(i).hazard_fld)(crit_ndx,:) = bsxfun(screw(i).bsxfun_op, ...
-            hazard.(screw(i).hazard_fld)(crit_ndx,:),change);
-    elseif length(crit_ndx) == fld_size_y
-        hazard_cc.(screw(i).hazard_fld)(:,crit_ndx) = bsxfun(screw(i).bsxfun_op, ...
-            hazard.(screw(i).hazard_fld)(:,crit_ndx),change);
+    if (reference_year - hazard.reference_year)~= 0
+        time_frac = (reference_year-hazard.reference_year)/(screw(i).year-hazard.reference_year);
+        switch func2str(screw(i).bsxfun_op)
+            case '@times'
+                change = 1+ (screw(i).change-1) * time_frac;
+            case '@plus'
+                change = screw(i).change * time_frac;
+            otherwise 
+                change = screw(i).change;
+        end % crew(i).bsxfun_op
+        fprintf('Apply change %2.4f \n', change)
+        
+        % determine to which index crit_ndx corresponds (particularly relevant
+        % for intensity field), and change by desired amount
+        [fld_size_x, fld_size_y] = size(hazard_cc.(screw(i).hazard_fld));
+        if length(crit_ndx) == fld_size_x
+            hazard_cc.(screw(i).hazard_fld)(crit_ndx,:) = bsxfun(screw(i).bsxfun_op, ...
+                hazard.(screw(i).hazard_fld)(crit_ndx,:),change);
+        elseif length(crit_ndx) == fld_size_y
+            hazard_cc.(screw(i).hazard_fld)(:,crit_ndx) = bsxfun(screw(i).bsxfun_op, ...
+                hazard.(screw(i).hazard_fld)(:,crit_ndx),change);
+        else
+            % something went wrong with indexing...
+            cprintf([1 0 0],'ERROR: something went wrong... \n')
+            return
+        end % length(crit_ndx) == fld_size_x
     else
-        % something went wrong with indexing...
-        cprintf([1 0 0],'ERROR: something went wrong... \n')
-        return
-    end % length(crit_ndx) == fld_size_x
+        fprintf('Hazard corresponds already to request reference year (%d)\n', reference_year)
+    end
+
 end % i = 1:length(screw)
 
 % change reference_year and filename
