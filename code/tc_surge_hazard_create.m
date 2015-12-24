@@ -39,7 +39,7 @@ function hazard=tc_surge_hazard_create(hazard,hazard_set_file,elevation_data,che
 %       If elevation_data is a structure with the fields lon(i), lat(i),
 %       elevation_m(i) and centroid_ID(i), check for centroid IDs being the
 %       same as in hazard.centroid_ID and then just 'attach' the elevation
-%       to hazard (i.e. hazard.elevation_m=elevation_data.elevation_m) 
+%       to hazard (i.e. hazard.elevation_m=elevation_data.elevation_m)
 %       Note: if hazard.elevation_m exists on input, this elevation
 %       information is used.
 %   check_plots: =1, do show check plots (only if BATI used), =0: no plots (default)
@@ -73,8 +73,10 @@ if ~isdir(module_data_dir),mkdir(fileparts(module_data_dir),'data');end % create
 save_bathymetry_flag=0; % default=0, see elevation_data
 
 if isempty(which('etopo_get'))
-    fprintf('WARNING: install climada module etopo first, see https://github.com/davidnbresch/climada_module_etopo\n');
-    fprintf('code %s continues, but might encounter problems\n',mfilename);
+    fprintf(['WARNING: install climada elevation module first. Please download ' ...
+        '<a href="https://github.com/davidnbresch/climada_module_elevation_models">'...
+        'climada_module_elevation_models</a> from Github.\n'])
+    fprintf('Note: code %s continues, but might encounter problems\n',mfilename);
 end
 
 % prompt for TC hazard event set if not given
@@ -149,7 +151,9 @@ if ~isfield(hazard,'elevation_m')
         
         if ~exist('etopo_get','file')
             % safety to inform the user in case he misses the ETOPO module
-            cprintf([1,0.5,0],'ERROR: no etopo_get function found. Please download from github and install the climada etopo module\nhttps://github.com/davidnbresch/climada_module_etopo\n');
+            fprintf(['ERROR: etopo_get function found, install climada elevation module first. Please download ' ...
+                '<a href="https://github.com/davidnbresch/climada_module_elevation_models">'...
+                'climada_module_elevation_models</a> from Github.\n'])
             hazard=[];
             return
         end
