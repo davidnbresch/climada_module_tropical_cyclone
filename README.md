@@ -1,7 +1,9 @@
-climada_module_tc_hazard_advanced
-=================================
+climada_module_tropical_cyclone (formerly climada_module_tc_hazard_advanced, until 20151224)
+===============================
+cotains also former modules climada_module_tc_rain and climada_module_tc_surge
 
-Advanced tropical cyclone hazard event sets - correction for decay over land etc.
+Advanced tropical cyclone hazard event sets - correction for decay over land etc. 
+Plus tropical cyclone related storm surge and rain
 
 In order to grant core climada access to additional modules, create a folder ‘modules’ in the core climada folder and copy/move any additional modules into climada/modules, without 'climada_module_' in the filename. 
 
