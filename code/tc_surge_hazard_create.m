@@ -53,6 +53,7 @@ function hazard=tc_surge_hazard_create(hazard,hazard_set_file,elevation_data,che
 % David N. Bresch, david.bresch@gmail.com, 20141017, module path relative
 % David N. Bresch, david.bresch@gmail.com, 20141026, save_bathymetry_flag
 % David N. Bresch, david.bresch@gmail.com, 20150106, elevation_data
+% David N. Bresch, david.bresch@gmail.com, 20160516, elevation_data single precision allowed (as eg from SRTM)
 %-
 
 global climada_global
@@ -233,8 +234,7 @@ if n_events<n_centroids % loop over events, since less events than centroids
     
     for event_i=1:n_events
         arr_i=find(hazard.intensity(event_i,:)); % to avoid de-sparsify all elements
-        hazard.intensity(event_i,arr_i)=max(hazard.intensity(event_i,arr_i)-hazard.elevation_m(arr_i),0);
-        
+        hazard.intensity(event_i,arr_i)=max(hazard.intensity(event_i,arr_i)-double(hazard.elevation_m(arr_i)),0); % 20160516 double(.) 
         if mod(event_i,mod_step)==0
             mod_step = 100;
             t_elapsed = etime(clock,t0)/event_i;
