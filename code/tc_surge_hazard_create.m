@@ -12,10 +12,7 @@ function hazard=tc_surge_hazard_create(hazard,hazard_set_file,elevation_data,che
 %   2) convert all TC footprints into TS footprints
 %   see CORE_CONVERSION in code below for the conversion formula
 %
-%   Note on bathymetry data:
-%   ETOPO1.nc was originally named ETOPO1_Ice_g_gmt4.grd and is the full
-%   high-res topography dataset (933.5 MB!) obtained directly from
-%   http://www.ngdc.noaa.gov/mgg/global/relief/ETOPO1/data/ice_surface/grid_registered/netcdf/ETOPO1_Ice_g_gmt4.grd.gz
+%   Note on bathymetry data: see https://github.com/davidnbresch/climada_module_elevation_models 
 %
 %   see tc_surge_TEST for a testbed for this code
 %
@@ -54,6 +51,7 @@ function hazard=tc_surge_hazard_create(hazard,hazard_set_file,elevation_data,che
 % David N. Bresch, david.bresch@gmail.com, 20141026, save_bathymetry_flag
 % David N. Bresch, david.bresch@gmail.com, 20150106, elevation_data
 % David N. Bresch, david.bresch@gmail.com, 20160516, elevation_data single precision allowed (as eg from SRTM)
+% David N. Bresch, david.bresch@gmail.com, 20160524, better error messaging for ETOPO issues
 %-
 
 global climada_global
@@ -152,14 +150,22 @@ if ~isfield(hazard,'elevation_m')
         
         if ~exist('etopo_get','file')
             % safety to inform the user in case he misses the ETOPO module
-            fprintf(['ERROR: etopo_get function found, install climada elevation module first. Please download ' ...
+            fprintf(['ERROR: etopo_get function not found, install climada elevation module first. Please download ' ...
                 '<a href="https://github.com/davidnbresch/climada_module_elevation_models">'...
                 'climada_module_elevation_models</a> from Github.\n'])
             hazard=[];
             return
         end
         BATI=etopo_get(bathy_coords);
-        if isempty(BATI),hazard=[];return;end % error messages from etopo_get already
+        if isempty(BATI),hazard=[];
+            fprintf(['Please download the file ' ...
+                '<a href="http://www.ngdc.noaa.gov/mgg/global/relief/ETOPO1/data/ice_surface/grid_registered/netcdf/ETOPO1_Ice_g_gmt4.grd.gz">'...
+                'ETOPO1_Ice_g_gmt4.grd.gz</a>\n' ...
+                '- move it into the data folder of the elevation models module\n', ...
+                '- unzip it (it might do so automatically, e.g. on a Mac)\n' ...
+                '- Rename it to ETOPO1.nc\n']);
+            return;
+        end % error messages from etopo_get already
         
         if save_bathymetry_flag
             fprintf('saving bathymetry as %s (you might later delete this file)\n',Bathymetry_file);
