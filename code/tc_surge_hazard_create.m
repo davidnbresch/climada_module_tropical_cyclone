@@ -51,7 +51,7 @@ function hazard=tc_surge_hazard_create(hazard,hazard_set_file,elevation_data,che
 % David N. Bresch, david.bresch@gmail.com, 20141026, save_bathymetry_flag
 % David N. Bresch, david.bresch@gmail.com, 20150106, elevation_data
 % David N. Bresch, david.bresch@gmail.com, 20160516, elevation_data single precision allowed (as eg from SRTM)
-% David N. Bresch, david.bresch@gmail.com, 20160524, better error messaging for ETOPO issues
+% David N. Bresch, david.bresch@gmail.com, 20160525, better error messaging for ETOPO issues
 %-
 
 global climada_global
@@ -70,13 +70,6 @@ if ~isdir(module_data_dir),mkdir(fileparts(module_data_dir),'data');end % create
 %
 % whether we save the bathymetry tile for subsequent use
 save_bathymetry_flag=0; % default=0, see elevation_data
-
-if isempty(which('etopo_get'))
-    fprintf(['WARNING: install climada elevation module first. Please download ' ...
-        '<a href="https://github.com/davidnbresch/climada_module_elevation_models">'...
-        'climada_module_elevation_models</a> from Github.\n'])
-    fprintf('Note: code %s continues, but might encounter problems\n',mfilename);
-end
 
 % prompt for TC hazard event set if not given
 if isempty(hazard) % local GUI
@@ -128,8 +121,15 @@ if ~isfield(hazard,'elevation_m')
         fprintf('Warning: elevation_data failed, using etopo\n');
     end
     
-    % second, if elevation_data is empty, use the etopo module
-    
+    % second, if elevation_data is empty, use the elevation module
+
+    if isempty(which('etopo_get')) % check for elevation module
+        fprintf(['WARNING: install climada elevation module first. Please download ' ...
+            '<a href="https://github.com/davidnbresch/climada_module_elevation_models">'...
+            'climada_module_elevation_models</a> from Github.\n'])
+        fprintf('Note: code %s continues, but might encounter problems\n',mfilename);
+    end
+        
     % prep the region we need (rectangular region encompassing the hazard centroids)
     centroids_rect=[min(hazard.lon) max(hazard.lon) min(hazard.lat) max(hazard.lat)];
     
@@ -158,13 +158,7 @@ if ~isfield(hazard,'elevation_m')
         end
         BATI=etopo_get(bathy_coords);
         if isempty(BATI),hazard=[];
-            fprintf(['Please download the file ' ...
-                '<a href="http://www.ngdc.noaa.gov/mgg/global/relief/ETOPO1/data/ice_surface/grid_registered/netcdf/ETOPO1_Ice_g_gmt4.grd.gz">'...
-                'ETOPO1_Ice_g_gmt4.grd.gz</a>\n' ...
-                '- move it into the data folder of the elevation models module\n', ...
-                '- unzip it (it might do so automatically, e.g. on a Mac)\n' ...
-                '- Rename it to ETOPO1.nc\n']);
-            return;
+            return
         end % error messages from etopo_get already
         
         if save_bathymetry_flag
