@@ -7,7 +7,7 @@ function hazard=tc_surge_TEST
 %   1) get centroids for the test country (eg Bangladesh, see PARAMETERS)
 %      if they do not exist, try to run GDP_entity in order to create them
 %   2) create TC wind hazard event set
-%   call tc_surge_hazard_create in order to
+%   call climada_ts_hazard_set in order to
 %      3) create bathymetry file for region
 %      4) create TC surge hazard event set
 %   show the result
@@ -15,7 +15,7 @@ function hazard=tc_surge_TEST
 %   In essence, you define the country and the code checks the generation
 %   of centroids, TC and TS hazard event sets
 %
-%   in essence a caller for code tc_surge_hazard_create
+%   in essence a caller for code climada_ts_hazard_set
 %
 %   see tc_surge_plot_3d for 3D plots of surge fields
 % CALLING SEQUENCE:
@@ -72,7 +72,7 @@ entity_file=   [climada_global.data_dir filesep 'entities' filesep TEST_country_
 % set UNISYS TC track data file (for info, see climada_tc_read_unisys_database)
 unisys_file=   [climada_global.data_dir filesep 'tc_tracks' filesep tc_track_file];
 %
-% 3) bathymetry parameters set in tc_surge_hazard_create
+% 3) bathymetry parameters set in climada_ts_hazard_set
 %
 % 4) surge hazard event set
 % -------------------------
@@ -193,7 +193,7 @@ fprintf('max event %i\n',max_tc_pos);
 % ==================
 % hazard on input: the tropical cyclone (TC) hazard event set
 % hazard on output: the storm surge (TS) hazard event set
-hazard=tc_surge_hazard_create(hazard,hazard_set_file_ts,0,1);
+hazard=climada_ts_hazard_set(hazard,hazard_set_file_ts,0,1);
 
 
 % show biggest TS event
