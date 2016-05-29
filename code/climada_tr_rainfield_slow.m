@@ -1,4 +1,4 @@
-function [res,tc_track_ori,centroids]=climada_tr_rainfield_slow(tc_track,centroids,equal_timestep,silent_mode,check_plot,unit_)
+function rainsum=climada_tr_rainfield_slow(tc_track,centroids,equal_timestep,silent_mode,check_plot,unit_)
 % TC rainfield calculation (rainsum)
 % NAME:
 %   climada_tr_rainfield_slow
@@ -15,7 +15,8 @@ function [res,tc_track_ori,centroids]=climada_tr_rainfield_slow(tc_track,centroi
 % EXAMPLE:
 %   tc_track=climada_tc_track_load('TEST_tracks.atl_hist');
 %   centroids=climada_centroids_load('USFL_MiamiDadeBrowardPalmBeach');
-%   res=climada_tr_rainfield_slow(tc_track(68),centroids);
+%   rainsum=climada_tr_rainfield_slow(tc_track(68),centroids);
+%   climada_color_plot(rainsum,centroids.lon,centroids.lat);
 % INPUTS:
 %   tc_track: a structure with the information for a single (1) tc track:
 %       tc_track.lat
@@ -48,12 +49,19 @@ function [res,tc_track_ori,centroids]=climada_tr_rainfield_slow(tc_track,centroi
 %   check_plot: whether some plots are created =1 (default=0, silent_mode=1
 %       sets check_plot also =0)
 % OUTPUTS:
-%   res.rainsum: the rain fall sum [mm per storm] at all centroids
+%   rainsum(i): the rain fall sum [mm over full lieftime of the event] 
+%       at all centroids(i)
+%
+%   One could also return res (switched off for speedup, 
+%   search for res. in code to swithc this on):
+%   (res.rainsum: the rain fall sum [mm per storm] at all centroids
 %       the single-character variables refer to the Pioneer offering circular
 %       that's why we kept these short names (so one can copy the OC for
 %       documentation)
-%   res.lat: the latitude of the centroids
-%   res.lon: the longitude of the centroids
+%   (res.lat: the latitude of the centroids (=centroids.lat)
+%   (res.lon: the longitude of the centroids (=centroids.lon)
+%   (res.rainrate: COULD be returned, but most cases not needed, see code)
+%   (res.time: time in sec, coiuld be returned, see TIMING in code)
 % RESTRICTIONS:
 % MODIFICATION HISTORY:
 % Lea Mueller, 20110606
@@ -63,6 +71,8 @@ function [res,tc_track_ori,centroids]=climada_tr_rainfield_slow(tc_track,centroi
 % David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir introduced
 % David N. Bresch, david.bresch@gmail.com, 20160529, renamed to climada_tr_rainfield_slow
 %-
+
+rainsum=[]; % init
 
 global climada_global
 if ~climada_init_vars, return; end
@@ -167,9 +177,7 @@ tc_track.MaxSustainedWindUnit='kn'; % after conversion
 
 track_nodes_count = length(tc_track.lat);
 centroid_count    = length(centroids.lat);
-res.rainsum       = zeros(1,centroid_count);
-res.lat           = centroids.lat;
-res.lon           = centroids.lon;
+rainsum       = zeros(1,centroid_count);
 
 % loop over track nodes
 tic;
@@ -189,7 +197,7 @@ for i = 1:track_nodes_count
     %      res.lat > (tc_track.lat(i) - 5) & ...
     %      res.lat < (tc_track.lat(i) + 5);
     
-    inreach=abs(res.lon-tc_track.lon(i))<dlon & abs(res.lat-tc_track.lat(i))<dlat;
+    inreach=abs(centroids.lon-tc_track.lon(i))<dlon & abs(centroids.lat-tc_track.lat(i))<dlat;
     
     % Calculate distance for individual gridpoints from TC Center for windfield
     %  calculation/orographic rain & R-CLIPER - only calculated for the
@@ -197,31 +205,36 @@ for i = 1:track_nodes_count
     if any(inreach)
         %[fRadius_km GridVect] = climada_nonspheric_distance_m(...
         fRadius_km = climada_nonspheric_distance_m( ...
-            res.lon(inreach),...
-            res.lat(inreach),...
+            centroids.lon(inreach),...
+            centroids.lat(inreach),...
             tc_track.lon(i),...
             tc_track.lat(i),...
             centroid_count,...
             inreach);
         
         % calculate rain rate in mm / h
-        rainrate         = climada_RCLIPER(tc_track.MaxSustainedWind(i),...
+        rainrate = climada_RCLIPER(tc_track.MaxSustainedWind(i),...
             inreach,fRadius_km'); % 20160528 ' added
-        res.rainrate(i,:)= sparse(rainrate); % uses a LOT of time, unnecessary
-        res.rainsum      = res.rainsum + rainrate;  %total sum of mm per wind storm
+        %res.rainrate(i,:)= sparse(rainrate); % uses a LOT of time, unnecessary
+        rainsum = rainsum + rainrate;  %total sum of mm per wind storm
     end
     
 end %Loop over all TC Nodes
 
 
-title_str = [tc_track.name ', ' datestr(tc_track.datenum(1))];
 if ~silent_mode, fprintf('%f secs for %s rainfall sum field\n',toc,deblank(title_str));end
 
+% in case one would like to output res:
+
+res.rainsum = rainsum;
+res.lat     = centroids.lat;
+res.lon     = centroids.lon;
 
 % %--------------
 % % FIGURE
 % %--------------
 % if check_plot
+%     title_str = [tc_track.name ', ' datestr(tc_track.datenum(1))];
 %     fprintf('preparing rainfall sum footprint plot\n')
 %     
 %     

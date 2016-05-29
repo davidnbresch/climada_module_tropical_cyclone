@@ -181,8 +181,7 @@ mod_step = 10; % first time estimate after 10 tracks, then every 100
 
 for track_i=1:n_tracks
     % calculate rainfield for every track, refined 1h timestep within this routine
-    res                             = climada_tr_rainfield(tc_track(track_i),centroids);
-    hazard.intensity(track_i,:)     = sparse(res.rainsum); % fill hazard array
+    hazard.intensity(track_i,:)     = climada_tr_rainfield(tc_track(track_i),centroids);
     hazard.orig_event_count         = hazard.orig_event_count + tc_track(track_i).orig_event_flag;
     hazard.orig_event_flag(track_i) = tc_track(track_i).orig_event_flag;
     

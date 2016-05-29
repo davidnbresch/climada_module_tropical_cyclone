@@ -6,13 +6,6 @@ function hazard  = climada_tr_hazard_set(tc_track,hazard_set_file,centroids)
 %   generate tropical cyclone hazard rain set
 %   previous: likely climada_random_walk
 %
-%   CAVEAT: this is the FAST version (using parfor). For speedup reasons,
-%   it does allocate the intensity array as zeros, not sparse (this way the
-%   parfor loop can blindly store into) and then converts to sparse once it
-%   stores it as hazard.intensity. Hence for very large computations, you
-%   might run into memory problems, just search for MEMORY in the code and
-%   switch to the respective lower memory usage option (still quite fast).
-%
 %   See climada_tr_hazard_set_slow for backward compatibility.
 %
 %   next: diverse, e.g. climada_EDS_calc
@@ -196,9 +189,9 @@ hazard.orig_event_count = 0; % init
 hazard.orig_event_flag  = zeros(1,n_tracks);
 
 % allocate the hazard array (sparse, to manage MEMORY)
-% intensity = spalloc(n_tracks,n_centroids,...
-%     ceil(n_tracks*n_centroids*hazard_arr_density));
-intensity = zeros(n_tracks,n_centroids); % FASTER
+intensity = spalloc(n_tracks,n_centroids,...
+    ceil(n_tracks*n_centroids*hazard_arr_density));
+%intensity = zeros(n_tracks,n_centroids); % FASTER
 
 t0       = clock;
 fprintf('processing %i tracks @ %i centroids (parfor)\n',n_tracks,n_centroids);
@@ -211,10 +204,8 @@ end
 tc_track=climada_tc_equal_timestep(tc_track,default_min_TimeStep); % make equal timesteps
 
 parfor track_i=1:n_tracks
-    res                   = climada_tr_rainfield(tc_track(track_i),centroids);
-    %intensity(track_i,:)  = sparse(res.rainsum); % MEMORY
-    intensity(track_i,:)  = res.rainsum; % FASTER
-end %track_i
+    intensity(track_i,:) = climada_tr_rainfield(tc_track(track_i),centroids);
+end % track_i
 
 hazard.intensity=sparse(intensity); % store into struct, sparse() to be safe
 clear intensity % free up memory
