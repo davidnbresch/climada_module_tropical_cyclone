@@ -1,4 +1,4 @@
-function centroids = climada_centroids_distance_to_coast(centroids, coastline, check_figure)
+function centroids = climada_centroids_distance_to_coast(centroids,coastline,check_figure)
 % calculate distance to coast in km for every centroid and add information
 % in the field centroids.dist_to_coast
 % NAME:

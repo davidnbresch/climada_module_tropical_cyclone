@@ -1,5 +1,6 @@
-function [entity ELS] = climada_scale_to_MSP_to_market(entity, ELS, MSP_AEL, market_TIV)
+function [entity,ELS] = climada_scale_to_MSP_to_market(entity, ELS, MSP_AEL, market_TIV)
 % UNDOCUMENTED
+%
 %-
 
 global climada_global
@@ -12,7 +13,7 @@ if ~exist('MSP_AEL'   ,'var'), MSP_AEL    = []; end
 if ~exist('market_TIV','var'), market_TIV = []; end
 
 
-if isempty(MSP_AEL) & ~isempty(ELS)
+if isempty(MSP_AEL) && ~isempty(ELS)
     if isfield(entity.assets, 'MSP_Loss')
         MSP_AEL = sum(entity.assets.MSP_Loss);
     end

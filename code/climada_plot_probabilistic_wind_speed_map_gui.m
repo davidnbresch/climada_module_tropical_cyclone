@@ -1,8 +1,4 @@
-
-
-function [track_req h g] = climada_plot_probabilistic_wind_speed_map_gui(tc_track, track_req)
-
-
+function [track_req,h,g] = climada_plot_probabilistic_wind_speed_map_gui(tc_track, track_req)
 % plot historical tc track (Longitude, Latitude) in world map according to
 % saffir-simpson hurrican scale. Add plot of probabilistic generated sister
 % storms. Historical tracks has black lines around markers to identify as

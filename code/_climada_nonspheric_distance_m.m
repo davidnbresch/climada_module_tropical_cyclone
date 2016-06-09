@@ -1,5 +1,4 @@
-function [fDistance_km GridVect] = climada_nonspheric_distance_m(fLon1,fLat1,fLon2,fLat2,...
-                                                         CUID, inreach)      
+function [fDistance_km GridVect] = climada_nonspheric_distance_m(fLon1,fLat1,fLon2,fLat2,CUID, inreach)      
 % This function calculates the distance for each individual gridpoint from
 % the TC center. Distance differences in x direction, depending on
 % latitude, are normalized in the whole inreach-box with the value at the
@@ -19,7 +18,7 @@ R = 6371;
 
 %abs() makes it compatible for north and south hemisphere
 latrad    = deg2rad(abs(fLat2));  
-% deg2rad(1) = distance for 1° longitude on given latitude
+% deg2rad(1) = distance for 1? longitude on given latitude
 delta_lon = 0.0174532925199433;     
 % square of half the chord length between the points
 a         = cos(latrad)^2 * sin(delta_lon/2)^2;       
