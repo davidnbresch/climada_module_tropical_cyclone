@@ -1,117 +1,148 @@
-function climada_tc_global_impact(basin,boundary_rect,markersize,show_plots,verbose)
+function parameters=climada_tc_global_impact(parameters,test_mode)
 % climada template
 % MODULE:
 %   tropical_cyclone
 % NAME:
 %   climada_tc_global_impact
 % PURPOSE:
-%   show global impact of tropical cyclones
-%
-%   NOTE: you might consider using ths rather as a batch in oder to play
-%   with parameters and settings (comment first line to convert from a
-%   function to a batch script).
+%   show global impact of tropical cyclones, save animation
 %
 %   previous call: climada_tc_read_unisys_database or climada_tc_track_combine
 %   next call: diverse
 % CALLING SEQUENCE:
-%   climada_tc_global_impact(basin)
+%   parameters=climada_tc_global_impact(parameters,test_mode)
 % EXAMPLE:
-%   climada_tc_global_impact('atl_hist')
-%   climada_tc_global_impact('atl_hist',[],[],3) % check for plot, then STOP
+%   parameters=climada_tc_global_impact([],-1) % obtain all default values
+%   climada_tc_global_impact('',1) % test and return defaults
+%   p.entity_file=[climada_global.entities_dir filesep 'USA_UnitedStates_Florida_entity.mat'];
+%   p.basin='atl_hist';climada_tc_global_impact(p);
 % INPUTS:
-%   basin: the basin name, such as 'atl_hist' or 'wpa_prob', default='atl_hist'
-%       if ='all', climada_tc_track_combine is invoked to combine all
-%       tracks of all basins (starting with common first year)
 % OPTIONAL INPUT PARAMETERS:
-%   boundary_rect: the boundary to plot [minlon maxlon minlat maxlat]
-%       default is whole globe
-%   markersize: the size of the 'tiles', one might need to experiment a
-%       bit, as the code tries (hard) to set a reasonabls default (based on
-%       resolution)
-%   show_plots: if =1, show on screen, =0 only save to animation file (default)
-%       Do NOT set show_plots=1 except for debugging, it slows down
-%       substantially
-%       Set show_plots=3 to stop after plotting assets to check whether
-%       e.g. markersize is fine.
-%       If show_plots is negative, the routine stops after processing 
-%       abs(show_plots) tracks.
-%   verbose: =1 verbose mode, =0 not (default)
-%       In any case, progress is written to stdout (time elapsed, est.)
+%   parameters: a structure to pass on parameters, with fields as
+%       (run parameters=climada_tc_global_impact([],-1) to obtain
+%       all default values)
+%       basin: the basin name, such as 'atl_hist' or 'wpa_prob', default='atl_hist'
+%           if ='all', climada_tc_track_combine is invoked to combine all
+%           tracks of all basins (starting with common first year)
+%       boundary_rect: the boundary to plot [minlon maxlon minlat maxlat]
+%           default is whole globe
+%       markersize: the size of the 'tiles', one might need to experiment a
+%           bit, as the code tries (hard) to set a reasonabls default (based on
+%           resolution)
+%       d_lola: (default=1) degrees around min/max lat/lon of assets
+%       assets_cmap: assets coloring (used for solid colored assets)
+%           Test with close all;plotclr(0:10,0:10,0:10,'s',20,0,0,10*1.05,assets_cmap,1,0);
+%       damage_cmap: damage coloring (used for solid colored assets)
+%           Test with close all;plotclr(0:10,0:10,0:10,'s',20,0,0,10*1.05,damage_cmap,1,0);
+%       check_plot: if =1, show on screen, =0 only save to animation file (default)
+%           Do NOT set check_plot=1 except for debugging, it slows down
+%           substantially
+%           Set check_plot=3 to stop after plotting assets to check whether
+%           e.g. markersize is fine.
+%           If check_plot is negative, the routine stops after processing
+%           abs(check_plot) tracks.
+%       STOP_after_n_tracks: stop after processing the images for n tracks,
+%           (not already after looping over n tracks). Default =NaN
+%       start_year: first year to deal with, default=-9999 to start with first
+%           year tracks are available
+%       default_min_TimeStep: the timestep in hours between nodes 
+%           (defaul =24 for speed, but =6 would be nicer)
+%       verbose: =1 verbose mode, =0 not (default)
+%           In any case, progress is written to stdout (time elapsed, est.)
+%   test_mode: if =-1, return all default parameters, =1 real test mode
+%       default =0
 % OUTPUTS:
 %   plots and animation
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20161023
-% David N. Bresch, david.bresch@gmail.com, 20161024,substantial speedup
+% David N. Bresch, david.bresch@gmail.com, 20161024, substantial speedup
+% David N. Bresch, david.bresch@gmail.com, 20161024, switched to parameters
 %-
 
 global climada_global
 if ~climada_init_vars,return;end % init/import global variables
 
 % poor man's version to check arguments
-if ~exist('basin','var'),basin='';end
-if ~exist('boundary_rect','var'),boundary_rect=[];end
-if ~exist('markersize','var'),markersize=[];end
-if ~exist('show_plots','var'),show_plots=0;end
-if ~exist('verbose','var'),verbose=0;end
+if ~exist('parameters','var'),parameters=struct;end
+if ~exist('test_mode','var'),test_mode=0;end
+
+% check for some parameter fields we need
+if ~isfield(parameters,'basin'),parameters.basin='';end
+if ~isfield(parameters,'boundary_rect'),parameters.boundary_rect=[];end
+if ~isfield(parameters,'markersize'),parameters.markersize=[];end
+if ~isfield(parameters,'show_ocean'),parameters.show_ocean=[];end
+if ~isfield(parameters,'show_land'),parameters.show_land=[];end
+if ~isfield(parameters,'cat_threshold'),parameters.cat_threshold=[];end
+if ~isfield(parameters,'animation_mp4_file'),parameters.animation_mp4_file='';end
+if ~isfield(parameters,'figure_Position'),parameters.figure_Position=[];end
+if ~isfield(parameters,'country_color'),parameters.country_color=[];end
+if ~isfield(parameters,'entity_file'),parameters.entity_file=[];end
+if ~isfield(parameters,'d_lola'),parameters.d_lola=[];end
+if ~isfield(parameters,'assets_cmap'),parameters.assets_cmap=[];end
+if ~isfield(parameters,'damage_cmap'),parameters.damage_cmap=[];end
+if ~isfield(parameters,'STOP_after_n_tracks'),parameters.STOP_after_n_tracks=[];end
+if ~isfield(parameters,'start_year'),parameters.start_year=[];end
+if ~isfield(parameters,'default_min_TimeStep'),parameters.default_min_TimeStep=[];end
+
+if ~isfield(parameters,'make_mp4'),parameters.make_mp4=[];end
+if ~isfield(parameters,'check_plot'),parameters.check_plot=[];end
+if ~isfield(parameters,'verbose'),parameters.verbose=[];end
+
+% set default values (see header for details)
+if isempty(parameters.basin),parameters.basin='all';end
+if isempty(parameters.show_ocean),parameters.show_ocean=0;end
+if isempty(parameters.show_land),parameters.show_land=0;end
+if isempty(parameters.cat_threshold),parameters.cat_threshold=3;end
+%if isempty(parameters.figure_Position),parameters.figure_Position=[1 5 1366 668];end % larger?
+if isempty(parameters.figure_Position),parameters.figure_Position=[1 5 1366 668];end % MacBookAir
+if isempty(parameters.country_color),parameters.country_color=[.6 .6 .6];end % light gray land color (underneath assets)
+if isempty(parameters.d_lola),parameters.d_lola=1;end
+if isempty(parameters.entity_file),parameters.entity_file=...
+        [climada_global.entities_dir filesep 'GLOBAL_10x10.mat'];end
+if isempty(parameters.animation_mp4_file),parameters.animation_mp4_file=...
+        [climada_global.results_dir filesep '_TC_IMPACT.mp4'];end
+if isempty(parameters.assets_cmap),parameters.assets_cmap=...
+        makeColorMap([.6 .7 .6], [.6 .7 .9], [0 .9 0],10);end
+if isempty(parameters.damage_cmap),parameters.damage_cmap=...
+        makeColorMap([0.5 .7 0],[.9 0 0],10);end
+if isempty(parameters.STOP_after_n_tracks),parameters.STOP_after_n_tracks=NaN;end
+if isempty(parameters.start_year),parameters.start_year=-9999;end
+if isempty(parameters.default_min_TimeStep),parameters.default_min_TimeStep=24;end
+
+if isempty(parameters.make_mp4),parameters.make_mp4=1;end
+if isempty(parameters.check_plot),parameters.check_plot=0;end
+if isempty(parameters.verbose),parameters.verbose=0;end
 
 
 % PARAMETERS
 %
-show_ocean=0; % =1, whether we color then ocean blue
-show_land=0; %=1, whether we color the land grey
-cat_threshold=5; % default -999 to plot all
-%
-animation_mp4_file=[climada_global.results_dir filesep '_TC_IMPACT.mp4'];
-make_mp4=1;
-%
-% the size of the figure, you might check with your screen first
-figure_Position=[1 5 20000 10000]; % check again TEST
-figure_Position=[1 5 1366 668]; % MacBookAir
-%
-% set default value for basin if not given
-if isempty(basin),basin='atl_hist';end
-%
-% the global entity
-entity_file=[climada_global.entities_dir filesep 'GLOBAL_10x10.mat'];
-%
-country_color=[.6 .6 .6]; % light gray land color (underneath assets)
-%
-d_lola=1; % degrees around min/max lat/lon of assets
-%
-% assets coloring (used for solid colored assets, ignored for circles)
-assets_cmap = makeColorMap([.6 .7 .6], [.6 .7 .9], [0 .9 0],10);
-%close all;plotclr(0:10,0:10,0:10,'s',20,0,0,10*1.05,assets_cmap,1,0); % TEST colormap
-%
-% damage coloring (used for solid colored assets, ignored for circles)
-damage_cmap = makeColorMap([0.5 .7 0],[.9 0 0],10);
-%close all;plotclr(0:10,0:10,0:10,'s',20,0,0,10*1.05,damage_cmap,1,0); % TEST colormap
+% Here only those one will very very likely not change, others in
+% parameters structure above.
 %
 % treat extratropical transition, to avoid unrealistic wind and damage
 % fields up north
 climada_global.tc.extratropical_transition=1;
-%
-% TEST (see TEST in code below, too)
-%boundary_rect=[-100 -70 20 45];
-%entity_file=[climada_global.entities_dir filesep 'USA_UnitedStates_entity.mat'];
-%entity_file=[climada_global.entities_dir filesep 'USA_UnitedStates_Florida_entity.mat'];
-%basin='atl_hist';
-%show_plots=1;make_mp4=0;
-%show_plots=0;make_mp4=1;
-verbose=0;
-%figure_Position=[1 5 300 200]; % small for fast TESTs
 
-if show_plots<0
-    show_plots=abs(show_plots);
-    STOP_after_n_tracks=show_plots;
-else
-    STOP_after_n_tracks=NaN;
+if test_mode==-1
+    return % returns all (default) parameters
+elseif test_mode==1
+    parameters.basin='atl_hist';
+    parameters.cat_threshold=5;
+    parameters.make_mp4=1;
+    parameters.markersize=4;
+    parameters.check_plot=1;
+    parameters.verbose=1;
+    parameters.STOP_after_n_tracks=5;
+    %parameters.default_min_TimeStep=6;
+    parameters.entity_file=[climada_global.entities_dir filesep ...
+        'USA_UnitedStates_Florida_entity.mat'];
 end
 
 % load assets
 % -----------
-if exist(entity_file,'file')
-    fprintf('using %s\n',entity_file);
-    load(entity_file)
+if exist(parameters.entity_file,'file')
+    fprintf('using %s\n',parameters.entity_file);
+    load(parameters.entity_file)
 else
     p.restrict_Values_to_country=0;
     p.save_entity=0;
@@ -126,32 +157,32 @@ entity.assets.centroid_index=1:length(entity.assets.lon); % init
 max_damage_Value=log(max(entity.assets.Value)*10);
 
 % figure the marker size
-if isempty(boundary_rect)
-    boundary_rect=[min(entity.assets.lon)-d_lola max(entity.assets.lon)+d_lola ...
-        min(entity.assets.lat)-d_lola max(entity.assets.lat)+d_lola];
-    if boundary_rect(1)<-180,boundary_rect(1)=-180;end
-    if boundary_rect(2)> 180,boundary_rect(2)= 180;end
-    if boundary_rect(3)< -90,boundary_rect(3)= -90;end
-    if boundary_rect(4)>  90,boundary_rect(4)=  90;end
+if isempty(parameters.boundary_rect)
+    parameters.boundary_rect=[min(entity.assets.lon)-parameters.d_lola max(entity.assets.lon)+parameters.d_lola ...
+        min(entity.assets.lat)-parameters.d_lola max(entity.assets.lat)+parameters.d_lola];
+    if parameters.boundary_rect(1)<-180,parameters.boundary_rect(1)=-180;end
+    if parameters.boundary_rect(2)> 180,parameters.boundary_rect(2)= 180;end
+    if parameters.boundary_rect(3)< -90,parameters.boundary_rect(3)= -90;end
+    if parameters.boundary_rect(4)>  90,parameters.boundary_rect(4)=  90;end
     
 end
 
-if show_plots,fig_visible='on';else fig_visible='off';end
-fig_handle=figure('Name',mfilename,'Position',figure_Position,'visible',fig_visible,'Color',[1 1 1]);
+if parameters.check_plot,fig_visible='on';else fig_visible='off';end
+fig_handle=figure('Name',mfilename,'Position',parameters.figure_Position,'visible',fig_visible,'Color',[1 1 1]);
 
-if show_ocean
+if parameters.show_ocean
     fprintf('plotting ocean ...');
     
-    fill([boundary_rect(1) boundary_rect(1) boundary_rect(2) boundary_rect(2)],...
-        [boundary_rect(3) boundary_rect(4) boundary_rect(4) boundary_rect(3)],...
+    fill([parameters.boundary_rect(1) parameters.boundary_rect(1) parameters.boundary_rect(2) parameters.boundary_rect(2)],...
+        [parameters.boundary_rect(3) parameters.boundary_rect(4) parameters.boundary_rect(4) parameters.boundary_rect(3)],...
         [0.9 0.9 .99],'LineWidth',1,'FaceColor',[0.6 0.7 1],'EdgeColor',[0.6 0.7 1]) % ocean blue
     hold on
     
-end % show_ocean
+end % parameters.show_ocean
 
-if show_land
+if parameters.show_land
     fprintf(' land ...');
-    % plot land in country_color (here instead of using climada_plot_world
+    % plot land in parameters.country_color (here instead of using climada_plot_world
     % borders to speed up a bit)
     map_shape_file=climada_global.map_border_file;
     shapes=climada_shaperead(map_shape_file);
@@ -166,47 +197,50 @@ if show_land
         i1=1; % init
         for isnan_pos_i=1:length(isnan_pos) % plot each sub-shape without NaNs
             i2=isnan_pos(isnan_pos_i)-1;
-            fill(shapes(shape_i).X(i1:i2),shapes(shape_i).Y(i1:i2),country_color,'LineWidth',1,'EdgeColor',country_color)
+            fill(shapes(shape_i).X(i1:i2),shapes(shape_i).Y(i1:i2),parameters.country_color,'LineWidth',1,'EdgeColor',parameters.country_color)
             i1=i2+2;
         end % isnan_pos_i
     end % shape_i
 else
     climada_plot_world_borders(1); % just borders
-end % show_land
+end % parameters.show_land
 
 axis equal
 axis off
 box off
-set(gca,'xlim',boundary_rect(1:2),'ylim',boundary_rect(3:4));
+set(gca,'xlim',parameters.boundary_rect(1:2),'ylim',parameters.boundary_rect(3:4));
 
-dlon=abs(diff(boundary_rect(1:2)));
-dlat=abs(diff(boundary_rect(3:4)));
+dlon=abs(diff(parameters.boundary_rect(1:2)));
+dlat=abs(diff(parameters.boundary_rect(3:4)));
 
-if isempty(markersize)
+if isempty(parameters.markersize)
     % a crude way to get an appropriate markersize
-    markersize=max(1,15-ceil(max(dlon,dlat)));
-    fprintf('markersize = %i\n',markersize);
+    parameters.markersize=max(1,15-ceil(max(dlon,dlat)));
+    fprintf('markersize = %i\n',parameters.markersize);
 end
 
 fprintf(' assets ...');
 
 asset_Value=entity.assets.Value; % to scale
 
-%LOCAL_colorplot(entity.assets.lon,entity.assets.lat,asset_Value,assets_cmap)
+%LOCAL_colorplot(entity.assets.lon,entity.assets.lat,asset_Value,parameters.assets_cmap)
 
 plotclr(entity.assets.lon,entity.assets.lat,asset_Value,...
-    's',markersize,0,0,max(asset_Value)*1.05,assets_cmap,1,0);
+    's',parameters.markersize,0,0,max(asset_Value)*1.05,parameters.assets_cmap,1,0);
 
 hold off;drawnow
 fprintf(' done\n');
 hold on
 
-if show_plots>2 && isnan(STOP_after_n_tracks)
-    fprintf('STOP: returned after plotting assets, markersize=%i\n',markersize);
+if parameters.check_plot>2 && isnan(parameters.STOP_after_n_tracks)
+    fprintf('STOP: returned after plotting assets, markersize=%i\n',parameters.markersize);
     return
 end
 
-if strcmpi(basin,'all');
+% load tracks
+% -----------
+
+if strcmpi(parameters.basin,'all');
     fprintf('loading and preparing all basins:\n');
     tc_track1=climada_tc_track_load('atl_hist');
     if isempty(tc_track1)
@@ -224,18 +258,19 @@ if strcmpi(basin,'all');
     %tc_track=climada_tc_track_combine(tc_track ,tc_track2,-1);
     %info=climada_tc_track_info(tc_track,1); % check plot
 else
-    fprintf('loading and preparing %s\n',basin);
-    tc_track=climada_tc_track_load(basin);
+    fprintf('loading and preparing %s\n',parameters.basin);
+    tc_track=climada_tc_track_load(parameters.basin);
 end
 tc_track=climada_tc_stormcategory(tc_track);
-tc_track=climada_tc_equal_timestep(tc_track,24); %3h is good enough
+tc_track=climada_tc_equal_timestep(tc_track,parameters.default_min_TimeStep); %3h is good enough
 fprintf('tc track preparations done\n');
 
-% Prepare the new file
-if make_mp4
-    vidObj = VideoWriter(animation_mp4_file,'MPEG-4');
+% prepare the animation file
+% --------------------------
+if parameters.make_mp4
+    vidObj = VideoWriter(parameters.animation_mp4_file,'MPEG-4');
     open(vidObj);
-    fprintf('VideoWriter to %s started\n',animation_mp4_file);
+    fprintf('VideoWriter to %s started\n',parameters.animation_mp4_file);
 end
 
 t0        = clock;
@@ -251,8 +286,8 @@ centroids.lon=entity.assets.lon;
 centroids.lat=entity.assets.lat;
 centroids.centroid_ID=1:length(centroids.lon);
 
-boundary_poly_x=[boundary_rect(1) boundary_rect(1) boundary_rect(2) boundary_rect(2) boundary_rect(1)];
-boundary_poly_y=[boundary_rect(3) boundary_rect(4) boundary_rect(4) boundary_rect(3) boundary_rect(3)];
+boundary_poly_x=[parameters.boundary_rect(1) parameters.boundary_rect(1) parameters.boundary_rect(2) parameters.boundary_rect(2) parameters.boundary_rect(1)];
+boundary_poly_y=[parameters.boundary_rect(3) parameters.boundary_rect(4) parameters.boundary_rect(4) parameters.boundary_rect(3) parameters.boundary_rect(3)];
 
 n_tracks_plotted=0;
 
@@ -260,16 +295,15 @@ for track_i=1:n_tracks
     %for track_i=2:3 % TEST
     
     color_cat=min(max(tc_track(track_i).category,0),5);
+    yyyy=tc_track(track_i).yyyy(1);
     
-    if color_cat>=cat_threshold
+    if color_cat>=parameters.cat_threshold && yyyy>=parameters.start_year
         
         min_yyyy=min(min_yyyy,min(tc_track(track_i).yyyy));
-        max_yyyy=max(max_yyyy,max(tc_track(track_i).yyyy));
-        
-        yyyy=tc_track(track_i).yyyy(1);
+        max_yyyy=max(max_yyyy,min(tc_track(track_i).yyyy));
         
         dd=min(dlon/10,dlat/10);
-        h_text=text(boundary_rect(1)+dd,boundary_rect(4)-dd,...
+        h_text=text(parameters.boundary_rect(1)+dd,parameters.boundary_rect(4)-dd,...
             sprintf('%4.4i',yyyy),'FontSize',32);
         
         % check for track being visible
@@ -300,34 +334,35 @@ for track_i=1:n_tracks
                         damage_Value=EDS.ED_at_centroid;
                         nz_damage_pos=find(damage_Value>0);
                         
-                        if verbose,fprintf(' step %i of track %i (%i): max damage  %f (log=%f), max_damage_Value %f\n',...
+                        if parameters.verbose,fprintf(' step %i of track %i (%i): max damage  %f (log=%f), max_damage_Value %f\n',...
                                 step_i,track_i,yyyy,max(damage_Value),log(max(damage_Value)),max_damage_Value);end
                         
                         damage_Value=log(damage_Value(nz_damage_pos));
                         damage_Value=min(damage_Value,max_damage_Value);
                         
-                        % max(asset_Value) etc. to plot 'higher' (it is a 3D plot...)
+                        % plot damage
+                        % -----------
                         plotclr(entity.assets.lon(nz_damage_pos),entity.assets.lat(nz_damage_pos),damage_Value,...
-                            's',markersize,0,0,max_damage_Value,damage_cmap,1,0);
+                            's',parameters.markersize,0,0,max_damage_Value,parameters.damage_cmap,1,0);
                         
                     else
-                        if verbose,fprintf(' step %i of track %i (%i): max intensity %f\n',...
+                        if parameters.verbose,fprintf(' step %i of track %i (%i): max intensity %f\n',...
                                 step_i,track_i,yyyy,full(max(hazard.intensity)));end
                     end % EDS.ED>0
                 else
-                    if verbose,fprintf(' step %i of track %i (%i)\n',step_i,track_i,yyyy);end
+                    if parameters.verbose,fprintf(' step %i of track %i (%i)\n',step_i,track_i,yyyy);end
                 end % % hazard.intensity non-zero
                 
                 % take a frame
-                if show_plots,drawnow;end % really slowing down
-                if make_mp4
+                if parameters.check_plot,drawnow;end % really slowing down
+                if parameters.make_mp4
                     %currFrame   = getframe(fig_handle); % inlcudes title etc.
                     currFrame   = getframe(gca); % bigger frame
                     % frame width and height need to be a multiple of two
                     if mod(size(currFrame.cdata,1),2),currFrame.cdata=currFrame.cdata(1:end-1,:,:);end
                     if mod(size(currFrame.cdata,2),2),currFrame.cdata=currFrame.cdata(:,1:end-1,:);end
                     writeVideo(vidObj,currFrame);
-                end % make_mp4
+                end % parameters.make_mp4
                 
                 delete(h_step) % delete single track
                 
@@ -349,19 +384,21 @@ for track_i=1:n_tracks
             end
             
         else
-            if verbose,fprintf(' skipped track %i (%i)\n',track_i,yyyy);end
+            if parameters.verbose,fprintf(' skipped track %i (%i)\n',track_i,yyyy);end
         end % in
         
         delete(h_text) % delete year in upper left corner
-                        
-    end % cat_threshold
+        
+    end % parameters.cat_threshold
     
-    if n_tracks_plotted>STOP_after_n_tracks,break;end
+    if n_tracks_plotted>parameters.STOP_after_n_tracks,break;end
     
 end % track_i
 fprintf(format_str,''); % move carriage to begin of line
 
-if make_mp4
+fprintf('\n\nplotted %i out of %i tracks for % .. %i\n',n_tracks_plotted,n_tracks,min_yyyy,max_yyyy);
+
+if parameters.make_mp4
     currFrame   = getframe(gca); % make sure same as above!
     if mod(size(currFrame.cdata,1),2),currFrame.cdata=currFrame.cdata(1:end-1,:,:);end
     if mod(size(currFrame.cdata,2),2),currFrame.cdata=currFrame.cdata(:,1:end-1,:);end
@@ -370,17 +407,23 @@ if make_mp4
     writeVideo(vidObj,currFrame);
     writeVideo(vidObj,currFrame);
     close(vidObj);
-    fprintf('\n\nmovie saved as %s\n', animation_mp4_file)
+    fprintf('\n\nmovie saved as %s\n', parameters.animation_mp4_file)
 end
 
-if ~show_plots,delete(fig_handle);end
+if test_mode==1
+    text(parameters.boundary_rect(1)+dd,parameters.boundary_rect(4)-dd,...
+        'TEST done','FontSize',32,'Color',[0 1 0]);
+end
 
-%end % climada_tc_global_impact
+if ~parameters.check_plot,delete(fig_handle);end
+
+end % climada_tc_global_impact
 
 % below a fest way to plot, but plotclr turned out to be fast, too.
-% function LOCAL_colorplot(x,y,v,miv,mav,map)
+% function LOCAL_colorplot(x,y,v,miv,mav,map,markersize)
 % if isempty(miv),miv=0;end
 % if isempty(mav),max(v);end
+% if isempty(markersize),markersize=1;end
 % if isempty(map),map=makeColorMap([.1 .1 .1], [.1 .9 .1], [.9 .1 .9],10);end
 %
 % color_steps = linspace(miv,mav,size(map,1));
