@@ -1,4 +1,4 @@
-%function climada_tc_global_impact(basin,boundary_rect,markersize,show_plots)
+function climada_tc_global_impact(basin,boundary_rect,markersize,show_plots,verbose)
 % climada template
 % MODULE:
 %   tropical_cyclone
@@ -6,6 +6,10 @@
 %   climada_tc_global_impact
 % PURPOSE:
 %   show global impact of tropical cyclones
+%
+%   NOTE: you might consider using ths rather as a batch in oder to play
+%   with parameters and settings (comment first line to convert from a
+%   function to a batch script).
 %
 %   previous call: climada_tc_read_unisys_database or climada_tc_track_combine
 %   next call: diverse
@@ -23,11 +27,16 @@
 %   markersize: the size of the 'tiles', one might need to experiment a
 %       bit, as the code tries (hard) to set a reasonabls default (based on
 %       resolution)
-%   show_plots: if =1, show on screen, =0 only sabe to animation file (default)
+%   show_plots: if =1, show on screen, =0 only save to animation file (default)
+%       Do NOT set show_plots=1 except for debugging, it slows down
+%       substantially
+%   verbose: =1 verbose mode, =0 not (default)
+%       In any case, progress is written to stdout (time elapsed, est.)
 % OUTPUTS:
 %   plots and animation
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20161023
+% David N. Bresch, david.bresch@gmail.com, 20161024,substantial speedup
 %-
 
 global climada_global
@@ -38,10 +47,8 @@ if ~exist('basin','var'),basin='';end
 if ~exist('boundary_rect','var'),boundary_rect=[];end
 if ~exist('markersize','var'),markersize=[];end
 if ~exist('show_plots','var'),show_plots=0;end
+if ~exist('verbose','var'),verbose=0;end
 
-% TEST
-basin='all';
-show_plots=0;
 
 % PARAMETERS
 %
@@ -49,11 +56,12 @@ show_ocean=0; % =1, whether we color then ocean blue
 show_land=0; %=1, whether we color the land grey
 cat_threshold=5; % default -999 to plot all
 %
-animation_mp4_file=[climada_global.results_dir filesep '_TC_IMPACT_SS5.mp4'];
+animation_mp4_file=[climada_global.results_dir filesep '_TC_IMPACT.mp4'];
 make_mp4=1;
 %
 % the size of the figure, you might check with your screen first
-figure_Position=[1 5 19201 1100];
+figure_Position=[1 5 20000 10000]; % check again TEST
+figure_Position=[1 5 1366 668]; % MacBookAir
 %
 % set default value for basin if not given
 if isempty(basin),basin='atl_hist';end
@@ -73,10 +81,18 @@ assets_cmap = makeColorMap([.6 .7 .6], [.6 .7 .9], [0 .9 0],10);
 damage_cmap = makeColorMap([0.5 .7 0],[.9 0 0],10);
 %close all;plotclr(0:10,0:10,0:10,'s',20,0,0,10*1.05,damage_cmap,1,0); % TEST colormap
 %
+% treat extratropical transition, to avoid unrealistic wind and damage
+% fields up north
+climada_global.tc.extratropical_transition=1;
+%
 % TEST (see TEST in code below, too)
 %boundary_rect=[-100 -70 20 45];
-%entity_file=[climada_global.entities_dir filesep 'USA_UnitedStates_entity.mat'];
-%markersize=3;
+entity_file=[climada_global.entities_dir filesep 'USA_UnitedStates_entity.mat'];
+entity_file=[climada_global.entities_dir filesep 'USA_UnitedStates_Florida_entity.mat'];
+basin='atl_hist';
+%show_plots=1;make_mp4=0;
+show_plots=0;make_mp4=1;
+verbose=0;
 
 % load assets
 % -----------
@@ -91,7 +107,7 @@ end
 
 % get rid of all zero points for later speedup
 entity.assets=climada_subarray(entity.assets,find(entity.assets.Value>0));
-entity.assets.centroid_index=1:length(entity.assets.lon);
+entity.assets.centroid_index=1:length(entity.assets.lon); % init
 
 % determine the maximum damage value
 max_damage_Value=log(max(entity.assets.Value)*10);
@@ -101,7 +117,10 @@ if isempty(boundary_rect)
     boundary_rect=[min(entity.assets.lon)-d_lola max(entity.assets.lon)+d_lola ...
         min(entity.assets.lat)-d_lola max(entity.assets.lat)+d_lola];
     if boundary_rect(1)<-180,boundary_rect(1)=-180;end
-    if boundary_rect(2) >180,boundary_rect(2) =180;end
+    if boundary_rect(2)> 180,boundary_rect(2)= 180;end
+    if boundary_rect(3)< -90,boundary_rect(3)= -90;end
+    if boundary_rect(4)>  90,boundary_rect(4)=  90;end
+    
 end
 
 if show_plots,fig_visible='on';else fig_visible='off';end
@@ -139,7 +158,7 @@ if show_land
         end % isnan_pos_i
     end % shape_i
 else
-    climada_plot_world_borders(1);
+    climada_plot_world_borders(1); % just borders
 end % show_land
 
 axis equal
@@ -165,17 +184,16 @@ asset_Value=entity.assets.Value; % to scale
 plotclr(entity.assets.lon,entity.assets.lat,asset_Value,...
     's',markersize,0,0,max(asset_Value)*1.05,assets_cmap,1,0);
 
-hold off; drawnow
+hold off;drawnow
 fprintf(' done\n');
-
 hold on
 
 if strcmpi(basin,'all');
     fprintf('loading and preparing all basins:\n');
     tc_track1=climada_tc_track_load('atl_hist');
     if isempty(tc_track1)
-         climada_tc_get_unisys_databases('',1);
-         tc_track1=climada_tc_track_load('atl_hist');
+        climada_tc_get_unisys_databases('',1);
+        tc_track1=climada_tc_track_load('atl_hist');
     end
     tc_track2=climada_tc_track_load('wpa_hist');
     tc_track=climada_tc_track_combine(tc_track1,tc_track2,-1);
@@ -203,22 +221,26 @@ if make_mp4
 end
 
 t0        = clock;
-mod_step  = 3; % first time estimate after 10 tracks, then every 100
+mod_step  = 1; % first time estimate after 2 tracks, then every 5
 format_str='%s';
 
 n_tracks=length(tc_track);
 % n_tracks=2; % TEST
 
-fprintf('plotting %i tracks\n',n_tracks);
-info=cell(1,length(tc_track)); % allocate
+fprintf('looping over %i tracks\n',n_tracks);
 min_yyyy= 9999;max_yyyy=-9999;
 
 centroids.lon=entity.assets.lon;
 centroids.lat=entity.assets.lat;
 centroids.centroid_ID=1:length(centroids.lon);
 
+boundary_poly_x=[boundary_rect(1) boundary_rect(1) boundary_rect(2) boundary_rect(2) boundary_rect(1)];
+boundary_poly_y=[boundary_rect(3) boundary_rect(4) boundary_rect(4) boundary_rect(3) boundary_rect(3)];
+
+n_tracks_plotted=0;
+
 for track_i=1:n_tracks
-    %for track_i=2:2 % TEST
+    %for track_i=2:3 % TEST
     
     color_cat=min(max(tc_track(track_i).category,0),5);
     
@@ -227,77 +249,91 @@ for track_i=1:n_tracks
         min_yyyy=min(min_yyyy,min(tc_track(track_i).yyyy));
         max_yyyy=max(max_yyyy,max(tc_track(track_i).yyyy));
         
+        yyyy=tc_track(track_i).yyyy(1);
+        
         dd=min(dlon/10,dlat/10);
         h_text=text(boundary_rect(1)+dd,boundary_rect(4)-dd,...
-            sprintf('%4.4i',tc_track(track_i).yyyy(1)),'FontSize',32);
+            sprintf('%4.4i',yyyy),'FontSize',32);
+        
+        % check for track being visible
+        in=inpolygon(tc_track(track_i).lon,tc_track(track_i).lat,boundary_poly_x,boundary_poly_y);
         
         %tc_track(track_i).MaxSustainedWind=tc_track(track_i).MaxSustainedWind*0+100; % TEST
         
-        for step_i=3:length(tc_track(track_i).lon)
-            % for step_i=30:length(tc_track(track_i).lon) % TEST
-            
-            LineWidth=1;%if color_cat>2,LineWidth=2;end
-            h_step=plot(tc_track(track_i).lon(1:step_i),tc_track(track_i).lat(1:step_i),'Color',[color_cat/7+2/7 0 0],'LineWidth',LineWidth);
-            
-            sub_track=climada_subarray(tc_track(track_i),1:step_i);
-            
-            % get the windfield
-            hazard = climada_tc_hazard_set(sub_track,'NOSAVE',centroids,1,0);
-            
-            damage_frame=0;
-            
-            if sum(sum(hazard.intensity))>0
-                % calculate the damage
-                EDS=climada_EDS_calc(entity,hazard,'',0,2);
+        if sum(in)>0
+            for step_i=3:length(tc_track(track_i).lon)
+                %for step_i=30:length(tc_track(track_i).lon) % TEST
                 
-                if EDS.ED>0
+                sub_track=climada_subarray(tc_track(track_i),1:step_i);
+
+                LineWidth=1;%if color_cat>2,LineWidth=2;end
+                h_step=plot(sub_track.lon,sub_track.lat,'Color',[color_cat/7+2/7 0 0],'LineWidth',LineWidth);
+                
+                % get the windfield
+                hazard = climada_tc_hazard_set(sub_track,'NOSAVE',centroids,1,0);
+                
+                if sum(sum(hazard.intensity))>0
                     
-                    % damage plot
-                    damage_Value=EDS.ED_at_centroid;
-                    nz_damage_pos=find(damage_Value>0);
+                    % calculate the damage
+                    EDS=climada_EDS_calc(entity,hazard,'',0,2);
                     
-                    %fprintf(' max damage  %f (log=%f), max_damage_Value %f\n',max(damage_Value),log(max(damage_Value)),max_damage_Value);
-                    
-                    damage_Value=log(damage_Value(nz_damage_pos));
-                    damage_Value=min(damage_Value,max_damage_Value);
-                    
-                    % max(asset_Value) etc. to plot 'higher' (it is a 3D plot...)
-                    plotclr(entity.assets.lon(nz_damage_pos),entity.assets.lat(nz_damage_pos),damage_Value,...
-                        's',markersize,0,0,max_damage_Value,damage_cmap,1,0);
-                    
-                    damage_frame=1;
-                    
-                end % EDS.ED>0
-            end % % hazard.intensity non-zero
-            
-            % take a frame
-            if show_plots,drawnow;end
-%             if damage_frame
-%                 fprintf('adding frame (step %i of track %i), damage %f \n',step_i,track_i,max(EDS.ED_at_centroid));
-%             else
-%                 fprintf('adding frame (step %i of track %i)\n',step_i,track_i);
-%             end
-            
-            if make_mp4
-                %currFrame   = getframe(fig_handle); % inlcudes title etc.
-                currFrame   = getframe(gca); % bigger frame
-                writeVideo(vidObj,currFrame);
-            end
-            
-            delete(h_step) % delete single track
-            
-        end % step_i
+                    if EDS.ED>0
+                        
+                        % damage plot
+                        damage_Value=EDS.ED_at_centroid;
+                        nz_damage_pos=find(damage_Value>0);
+                        
+                        if verbose,fprintf(' step %i of track %i (%i): max damage  %f (log=%f), max_damage_Value %f\n',...
+                                step_i,track_i,yyyy,max(damage_Value),log(max(damage_Value)),max_damage_Value);end
+                        
+                        damage_Value=log(damage_Value(nz_damage_pos));
+                        damage_Value=min(damage_Value,max_damage_Value);
+                        
+                        % max(asset_Value) etc. to plot 'higher' (it is a 3D plot...)
+                        plotclr(entity.assets.lon(nz_damage_pos),entity.assets.lat(nz_damage_pos),damage_Value,...
+                            's',markersize,0,0,max_damage_Value,damage_cmap,1,0);
+                        
+                    else
+                        if verbose,fprintf(' step %i of track %i (%i): max intensity %f\n',...
+                                step_i,track_i,yyyy,full(max(hazard.intensity)));end
+                    end % EDS.ED>0
+                else
+                    if verbose,fprintf(' step %i of track %i (%i)\n',step_i,track_i,yyyy);end
+                end % % hazard.intensity non-zero
+                
+                % take a frame
+                if show_plots,drawnow;end % really slowing down
+                if make_mp4
+                    %currFrame   = getframe(fig_handle); % inlcudes title etc.
+                    currFrame   = getframe(gca); % bigger frame
+                    % frame width and height need to be a multiple of two                 
+                    if mod(size(currFrame.cdata,1),2),currFrame.cdata=currFrame.cdata(1:end-1,:,:);end
+                    if mod(size(currFrame.cdata,2),2),currFrame.cdata=currFrame.cdata(:,1:end-1,:);end
+                    writeVideo(vidObj,currFrame);
+                end % make_mp4
+                
+                delete(h_step) % delete single track
+                
+            end % step_i
+            n_tracks_plotted=n_tracks_plotted+1;
+        else
+            if verbose,fprintf(' skipped track %i (%i)\n',track_i,yyyy);end
+        end % in
         
         delete(h_text) % delete year in upper left corner
-        
+                
+        %if n_tracks_plotted>3,return;end % TEST
+
         % the progress management
         if mod(track_i,mod_step)==0
-            mod_step          = 10; % TEST
-            t_elapsed_track   = etime(clock,t0)/track_i;
-            tracks_remaining  = n_tracks-track_i;
-            t_projected_sec   = t_elapsed_track*tracks_remaining;
-            msgstr = sprintf('est. %3.0f sec left (%i/%i events, year %i)',...
-                t_projected_sec,track_i,n_tracks,tc_track(track_i).yyyy(1));
+            mod_step         = 2; % TEST
+            t_elapsed        = etime(clock,t0);
+            track_fraction   = n_tracks_plotted/track_i; % sepcial, since we do not plot all
+            t_elapsed_track  = t_elapsed/n_tracks_plotted;
+            tracks_remaining = n_tracks*track_fraction-n_tracks_plotted;
+            t_projected_sec  = t_elapsed_track*tracks_remaining;
+            msgstr = sprintf('elapsed %3.0f sec, est. %3.0f sec left (%i/%i tracks, year %i)',...
+                t_elapsed,t_projected_sec,track_i,n_tracks,yyyy);
             fprintf(format_str,msgstr); % write progress to stdout
             format_str=[repmat('\b',1,length(msgstr)) '%s']; % back to begin of line
         end
@@ -308,13 +344,11 @@ end % track_i
 fprintf(format_str,''); % move carriage to begin of line
 
 if make_mp4
-    
     currFrame   = getframe(gca); % make sure same as above!
     writeVideo(vidObj,currFrame); % write a few frames more
     writeVideo(vidObj,currFrame);
     writeVideo(vidObj,currFrame);
     writeVideo(vidObj,currFrame);
-    
     close(vidObj);
     fprintf('\n\nmovie saved as %s\n', animation_mp4_file)
 end
