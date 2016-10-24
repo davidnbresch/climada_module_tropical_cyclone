@@ -39,22 +39,26 @@ if ~exist('boundary_rect','var'),boundary_rect=[];end
 if ~exist('markersize','var'),markersize=[];end
 if ~exist('show_plots','var'),show_plots=0;end
 
+% TEST
+basin='all';
+show_plots=0;
 
 % PARAMETERS
 %
-show_ocean=0;
-show_land=0;
-cat_threshold=3; % default -999 to plot all
+show_ocean=0; % =1, whether we color then ocean blue
+show_land=0; %=1, whether we color the land grey
+cat_threshold=5; % default -999 to plot all
 %
-animation_mp4_file=[climada_global.results_dir filesep '_TC_IMPACT.mp4'];
-make_mp4=0;
-show_plots=1;
+animation_mp4_file=[climada_global.results_dir filesep '_TC_IMPACT_SS5.mp4'];
+make_mp4=1;
 %
+% the size of the figure, you might check with your screen first
 figure_Position=[1 5 19201 1100];
 %
 % set default value for basin if not given
 if isempty(basin),basin='atl_hist';end
 %
+% the global entity
 entity_file=[climada_global.entities_dir filesep 'GLOBAL_10x10.mat'];
 %
 country_color=[.6 .6 .6]; % light gray land color (underneath assets)
@@ -96,6 +100,8 @@ max_damage_Value=log(max(entity.assets.Value)*10);
 if isempty(boundary_rect)
     boundary_rect=[min(entity.assets.lon)-d_lola max(entity.assets.lon)+d_lola ...
         min(entity.assets.lat)-d_lola max(entity.assets.lat)+d_lola];
+    if boundary_rect(1)<-180,boundary_rect(1)=-180;end
+    if boundary_rect(2) >180,boundary_rect(2) =180;end
 end
 
 if show_plots,fig_visible='on';else fig_visible='off';end
@@ -165,25 +171,29 @@ fprintf(' done\n');
 hold on
 
 if strcmpi(basin,'all');
-    fprintf('... loading and preparing all basins:\n');
+    fprintf('loading and preparing all basins:\n');
     tc_track1=climada_tc_track_load('atl_hist');
+    if isempty(tc_track1)
+         climada_tc_get_unisys_databases('',1);
+         tc_track1=climada_tc_track_load('atl_hist');
+    end
     tc_track2=climada_tc_track_load('wpa_hist');
     tc_track=climada_tc_track_combine(tc_track1,tc_track2,-1);
     tc_track2=climada_tc_track_load('epa_hist');
     tc_track=climada_tc_track_combine(tc_track ,tc_track2,-1);
     tc_track2=climada_tc_track_load('nio_hist');
     tc_track=climada_tc_track_combine(tc_track ,tc_track2,-1);
-    tc_track2=climada_tc_track_load('she_hist');
-    tc_track=climada_tc_track_combine(tc_track ,tc_track2,-1);
+    % southern hemisphere still has the dateline issue
+    %tc_track2=climada_tc_track_load('she_hist');
+    %tc_track=climada_tc_track_combine(tc_track ,tc_track2,-1);
     %info=climada_tc_track_info(tc_track,1); % check plot
-    fprintf('... done\n');
 else
-    fprintf('loading and preparing %s ...',basin);
+    fprintf('loading and preparing %s\n',basin);
     tc_track=climada_tc_track_load(basin);
-    tc_track=climada_tc_stormcategory(tc_track);
-    tc_track=climada_tc_equal_timestep(tc_track,6); %3h is good enough
-    fprintf(' done\n');
 end
+tc_track=climada_tc_stormcategory(tc_track);
+tc_track=climada_tc_equal_timestep(tc_track,6); %3h is good enough
+fprintf('tc track preparations done\n');
 
 % Prepare the new file
 if make_mp4
@@ -212,7 +222,7 @@ for track_i=1:n_tracks
     
     color_cat=min(max(tc_track(track_i).category,0),5);
     
-    if color_cat>cat_threshold
+    if color_cat>=cat_threshold
         
         min_yyyy=min(min_yyyy,min(tc_track(track_i).yyyy));
         max_yyyy=max(max_yyyy,max(tc_track(track_i).yyyy));
