@@ -17,6 +17,7 @@ function climada_tc_global_impact(basin,boundary_rect,markersize,show_plots,verb
 %   climada_tc_global_impact(basin)
 % EXAMPLE:
 %   climada_tc_global_impact('atl_hist')
+%   climada_tc_global_impact('atl_hist',[],[],3) % check for plot, then STOP
 % INPUTS:
 %   basin: the basin name, such as 'atl_hist' or 'wpa_prob', default='atl_hist'
 %       if ='all', climada_tc_track_combine is invoked to combine all
@@ -30,6 +31,8 @@ function climada_tc_global_impact(basin,boundary_rect,markersize,show_plots,verb
 %   show_plots: if =1, show on screen, =0 only save to animation file (default)
 %       Do NOT set show_plots=1 except for debugging, it slows down
 %       substantially
+%       Set show_plots=3 to stop after plotting assets to check whether
+%       e.g. markersize is fine.
 %   verbose: =1 verbose mode, =0 not (default)
 %       In any case, progress is written to stdout (time elapsed, est.)
 % OUTPUTS:
@@ -91,8 +94,9 @@ entity_file=[climada_global.entities_dir filesep 'USA_UnitedStates_entity.mat'];
 entity_file=[climada_global.entities_dir filesep 'USA_UnitedStates_Florida_entity.mat'];
 basin='atl_hist';
 %show_plots=1;make_mp4=0;
-show_plots=0;make_mp4=1;
+%show_plots=0;make_mp4=1;
 verbose=0;
+%figure_Position=[1 5 300 200]; % small for fast TESTs
 
 % load assets
 % -----------
@@ -187,6 +191,11 @@ plotclr(entity.assets.lon,entity.assets.lat,asset_Value,...
 hold off;drawnow
 fprintf(' done\n');
 hold on
+
+if show_plots>2
+    fprintf('STOP: returned after plotting assets, markersize=%i\n',markersize);
+    return
+end
 
 if strcmpi(basin,'all');
     fprintf('loading and preparing all basins:\n');
@@ -326,14 +335,14 @@ for track_i=1:n_tracks
 
         % the progress management
         if mod(track_i,mod_step)==0
-            mod_step         = 2; % TEST
+            mod_step         = 1; % TEST
             t_elapsed        = etime(clock,t0);
-            track_fraction   = n_tracks_plotted/track_i; % sepcial, since we do not plot all
             t_elapsed_track  = t_elapsed/n_tracks_plotted;
-            tracks_remaining = n_tracks*track_fraction-n_tracks_plotted;
+            track_fraction   = n_tracks_plotted/track_i; % sepcial, since we do not plot all
+            tracks_remaining = max(0,n_tracks*track_fraction-n_tracks_plotted);
             t_projected_sec  = t_elapsed_track*tracks_remaining;
-            msgstr = sprintf('elapsed %3.0f sec, est. %3.0f sec left (%i/%i tracks, year %i)',...
-                t_elapsed,t_projected_sec,track_i,n_tracks,yyyy);
+            msgstr = sprintf('elapsed %3.0f sec, est. %3.0f sec left (plotted %i of %i of total %i tracks, year %i)',...
+                t_elapsed,t_projected_sec,n_tracks_plotted,track_i,n_tracks,yyyy);
             fprintf(format_str,msgstr); % write progress to stdout
             format_str=[repmat('\b',1,length(msgstr)) '%s']; % back to begin of line
         end
@@ -345,6 +354,8 @@ fprintf(format_str,''); % move carriage to begin of line
 
 if make_mp4
     currFrame   = getframe(gca); % make sure same as above!
+    if mod(size(currFrame.cdata,1),2),currFrame.cdata=currFrame.cdata(1:end-1,:,:);end
+    if mod(size(currFrame.cdata,2),2),currFrame.cdata=currFrame.cdata(:,1:end-1,:);end
     writeVideo(vidObj,currFrame); % write a few frames more
     writeVideo(vidObj,currFrame);
     writeVideo(vidObj,currFrame);
