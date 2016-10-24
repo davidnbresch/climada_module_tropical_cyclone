@@ -33,6 +33,8 @@ function climada_tc_global_impact(basin,boundary_rect,markersize,show_plots,verb
 %       substantially
 %       Set show_plots=3 to stop after plotting assets to check whether
 %       e.g. markersize is fine.
+%       If show_plots is negative, the routine stops after processing 
+%       abs(show_plots) tracks.
 %   verbose: =1 verbose mode, =0 not (default)
 %       In any case, progress is written to stdout (time elapsed, est.)
 % OUTPUTS:
@@ -90,13 +92,20 @@ climada_global.tc.extratropical_transition=1;
 %
 % TEST (see TEST in code below, too)
 %boundary_rect=[-100 -70 20 45];
-entity_file=[climada_global.entities_dir filesep 'USA_UnitedStates_entity.mat'];
-entity_file=[climada_global.entities_dir filesep 'USA_UnitedStates_Florida_entity.mat'];
-basin='atl_hist';
+%entity_file=[climada_global.entities_dir filesep 'USA_UnitedStates_entity.mat'];
+%entity_file=[climada_global.entities_dir filesep 'USA_UnitedStates_Florida_entity.mat'];
+%basin='atl_hist';
 %show_plots=1;make_mp4=0;
 %show_plots=0;make_mp4=1;
 verbose=0;
 %figure_Position=[1 5 300 200]; % small for fast TESTs
+
+if show_plots<0
+    show_plots=abs(show_plots);
+    STOP_after_n_tracks=show_plots;
+else
+    STOP_after_n_tracks=NaN;
+end
 
 % load assets
 % -----------
@@ -192,7 +201,7 @@ hold off;drawnow
 fprintf(' done\n');
 hold on
 
-if show_plots>2
+if show_plots>2 && isnan(STOP_after_n_tracks)
     fprintf('STOP: returned after plotting assets, markersize=%i\n',markersize);
     return
 end
@@ -234,7 +243,6 @@ mod_step  = 1; % first time estimate after 2 tracks, then every 5
 format_str='%s';
 
 n_tracks=length(tc_track);
-% n_tracks=2; % TEST
 
 fprintf('looping over %i tracks\n',n_tracks);
 min_yyyy= 9999;max_yyyy=-9999;
@@ -274,7 +282,7 @@ for track_i=1:n_tracks
                 %for step_i=30:length(tc_track(track_i).lon) % TEST
                 
                 sub_track=climada_subarray(tc_track(track_i),1:step_i);
-
+                
                 LineWidth=1;%if color_cat>2,LineWidth=2;end
                 h_step=plot(sub_track.lon,sub_track.lat,'Color',[color_cat/7+2/7 0 0],'LineWidth',LineWidth);
                 
@@ -315,7 +323,7 @@ for track_i=1:n_tracks
                 if make_mp4
                     %currFrame   = getframe(fig_handle); % inlcudes title etc.
                     currFrame   = getframe(gca); % bigger frame
-                    % frame width and height need to be a multiple of two                 
+                    % frame width and height need to be a multiple of two
                     if mod(size(currFrame.cdata,1),2),currFrame.cdata=currFrame.cdata(1:end-1,:,:);end
                     if mod(size(currFrame.cdata,2),2),currFrame.cdata=currFrame.cdata(:,1:end-1,:);end
                     writeVideo(vidObj,currFrame);
@@ -325,29 +333,30 @@ for track_i=1:n_tracks
                 
             end % step_i
             n_tracks_plotted=n_tracks_plotted+1;
+            
+            % the progress management
+            if mod(track_i,mod_step)==0
+                mod_step         = 1; % TEST
+                t_elapsed        = etime(clock,t0);
+                t_elapsed_track  = t_elapsed/n_tracks_plotted;
+                track_fraction   = n_tracks_plotted/track_i; % sepcial, since we do not plot all
+                tracks_remaining = max(0,n_tracks*track_fraction-n_tracks_plotted);
+                t_projected_sec  = t_elapsed_track*tracks_remaining;
+                msgstr = sprintf('elapsed %3.0f sec, est. %3.0f sec left (plotted %i of %i of total %i tracks, year %i)',...
+                    t_elapsed,t_projected_sec,n_tracks_plotted,track_i,n_tracks,yyyy);
+                fprintf(format_str,msgstr); % write progress to stdout
+                format_str=[repmat('\b',1,length(msgstr)) '%s']; % back to begin of line
+            end
+            
         else
             if verbose,fprintf(' skipped track %i (%i)\n',track_i,yyyy);end
         end % in
         
         delete(h_text) % delete year in upper left corner
-                
-        %if n_tracks_plotted>3,return;end % TEST
-
-        % the progress management
-        if mod(track_i,mod_step)==0
-            mod_step         = 1; % TEST
-            t_elapsed        = etime(clock,t0);
-            t_elapsed_track  = t_elapsed/n_tracks_plotted;
-            track_fraction   = n_tracks_plotted/track_i; % sepcial, since we do not plot all
-            tracks_remaining = max(0,n_tracks*track_fraction-n_tracks_plotted);
-            t_projected_sec  = t_elapsed_track*tracks_remaining;
-            msgstr = sprintf('elapsed %3.0f sec, est. %3.0f sec left (plotted %i of %i of total %i tracks, year %i)',...
-                t_elapsed,t_projected_sec,n_tracks_plotted,track_i,n_tracks,yyyy);
-            fprintf(format_str,msgstr); % write progress to stdout
-            format_str=[repmat('\b',1,length(msgstr)) '%s']; % back to begin of line
-        end
-        
+                        
     end % cat_threshold
+    
+    if n_tracks_plotted>STOP_after_n_tracks,break;end
     
 end % track_i
 fprintf(format_str,''); % move carriage to begin of line
