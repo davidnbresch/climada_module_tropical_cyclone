@@ -228,7 +228,7 @@ else
     tc_track=climada_tc_track_load(basin);
 end
 tc_track=climada_tc_stormcategory(tc_track);
-tc_track=climada_tc_equal_timestep(tc_track,6); %3h is good enough
+tc_track=climada_tc_equal_timestep(tc_track,24); %3h is good enough
 fprintf('tc track preparations done\n');
 
 % Prepare the new file
