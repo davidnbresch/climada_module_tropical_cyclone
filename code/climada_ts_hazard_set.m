@@ -329,7 +329,7 @@ if ~isfield(hazard,'orig_event_count') % fix a minor issue with some hazard sets
     end
 end
 
-if ~strcmpi(hazard_set_file,'NO_SAVE');
+if isempty(strfind(hazard_set_file,'NO_SAVE'))
     fprintf('saving TS surge hazard set as %s\n',hazard_set_file);
     save(hazard_set_file,'hazard');
 end
