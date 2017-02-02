@@ -7,6 +7,8 @@ function parameters=climada_tc_global_impact(parameters,test_mode)
 % PURPOSE:
 %   show global impact of tropical cyclones, save animation
 %
+%   for speedup, consder to set climada_global.parfor=1
+%
 %   previous call: climada_tc_read_unisys_database or climada_tc_track_combine
 %   next call: diverse
 % CALLING SEQUENCE:
@@ -321,7 +323,7 @@ for track_i=1:n_tracks
                 h_step=plot(sub_track.lon,sub_track.lat,'Color',[color_cat/7+2/7 0 0],'LineWidth',LineWidth);
                 
                 % get the windfield
-                hazard = climada_tc_hazard_set(sub_track,'NOSAVE',centroids,1,0);
+                hazard = climada_tc_hazard_set(sub_track,'NOSAVE',centroids,1);
                 
                 if sum(sum(hazard.intensity))>0
                     
