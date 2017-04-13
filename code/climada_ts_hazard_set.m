@@ -331,7 +331,7 @@ end
 
 if isempty(strfind(hazard_set_file,'NO_SAVE'))
     fprintf('saving TS surge hazard set as %s\n',hazard_set_file);
-    save(hazard_set_file,'hazard');
+    save(hazard_set_file,'hazard',climada_global.save_file_version);
 end
 
 %%fprintf('TS: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
