@@ -1,4 +1,4 @@
-function hazard=tc_surge_TEST
+%function [hazard_TS,hazard_TC]=tc_surge_TEST
 % climada
 % NAME:
 %   tc_surge_TEST
@@ -19,7 +19,7 @@ function hazard=tc_surge_TEST
 %
 %   see tc_surge_plot_3d for 3D plots of surge fields
 % CALLING SEQUENCE:
-%   hazard=tc_surge_TEST
+%   [hazard_TS,hazard_TC]=tc_surge_TEST % if run as a function
 % EXAMPLE:
 %   tc_surge_TEST
 % INPUTS:
@@ -27,10 +27,13 @@ function hazard=tc_surge_TEST
 % OUTPUTS:
 %   writes a couple files, such as entity, assets, bathymetry and a
 %       hazard event set
+%   hazard_ts: the storm surge hazard event set
+%   hazard_tc: the storm wind speed hazard event set
 % MODIFICATION HISTORY:
 % David N. Bresch, david.bresch@gmail.com, 20140420
 % David N. Bresch, david.bresch@gmail.com, 20141017 module independent of location
 % David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir introduced
+% David N. Bresch, david.bresch@gmail.com, 20170522, climada_hazard_plot
 %-
 
 hazard=[]; % init output
@@ -63,7 +66,6 @@ TEST_probabilistic=1; % default=0, since fast to check
 % define the file with centroids (geo-locations of the points we later
 % evaluate and store storm surge heights at)
 % see climada_create_GDP_entity to create centroids file
-centroids_file=[climada_global.centroids_dir filesep TEST_country_name '_centroids.mat'];
 % if the centroids are generated in the present code, the entitity is also stored (not needed for this TEST)
 entity_file=   [climada_global.data_dir filesep 'entities' filesep TEST_country_name '_entity.mat'];
 %
@@ -84,22 +86,12 @@ hazard_set_file_ts=[climada_global.data_dir filesep 'hazards' filesep TEST_count
 % Calculations start
 % ==================
 
-
-% 1) read the centroids
-% ---------------------
-if exist(centroids_file,'file')
-    load(centroids_file) % load centroids
-else
-    % invoke the GDP_entity moduke to generate centroids and entity
-    TEST_country_name_tmp=TEST_country_name;
-    if strcmp(TEST_country_name,'Vietnam'),TEST_country_name_tmp='Viet Nam';end
-    [centroids,entity]=climada_create_GDP_entity(TEST_country_name_tmp);
-    save(centroids_file,'centroids');
-    % note: assets are not needed for the TEST, but since it's convenient to store them for later use
-    save(entity_file,'entity');
-    % visualize assets on map
-    climada_plot_entity_assets(entity,centroids,TEST_country_name);
-end
+entity=climada_nightlight_entity(TEST_country_name);
+fprintf('> saving entity as %s\n',entity_file);
+save(entity_file,'entity');
+centroids.lon=entity.assets.lon;
+centroids.lat=entity.assets.lat;
+centroids.centroid_ID=1:length(centroids.lon);
 
 % prep the region we need
 centroids_rect=[min(centroids.lon) max(centroids.lon) min(centroids.lat) max(centroids.lat)];
@@ -120,7 +112,7 @@ if ~exist(hazard_set_file_tc,'file')
         
         if exist('climada_tc_track_wind_decay_calculate','file')
             % wind speed decay at track nodes after landfall
-            [a p_rel]  = climada_tc_track_wind_decay_calculate(tc_track,1);
+            [a,p_rel] = climada_tc_track_wind_decay_calculate(tc_track,1);
         else
             fprintf('NO inland decay, consider module tc_hazard_advanced\n');
         end
@@ -153,23 +145,24 @@ if ~exist(hazard_set_file_tc,'file')
     end
     
     % generate all the wind footprints
-    hazard = climada_tc_hazard_set(tc_track, hazard_set_file_tc, centroids);
+    hazard_TC = climada_tc_hazard_set(tc_track, hazard_set_file_tc, centroids);
     
 else
     fprintf('loading TC wind hazard set from %s\n',hazard_set_file_tc);
     load(hazard_set_file_tc);
+    hazard_TC=hazard;
 end
 
-fprintf('TC: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
+fprintf('TC: max intensity=%f\n',full(max(max(hazard_TC.intensity)))); % a kind of easy check
 
 % show biggest TC event
-[~,max_tc_pos]=max(sum(hazard.intensity,2)); % the maximum TC intensity
+[~,max_tc_pos]=max(sum(hazard_TC.intensity,2)); % the maximum TC intensity
 
 main_fig=figure('Name','tc surge TEST','Position',[89 223 1014 413],'Color',[1 1 1]);
 subplot(1,2,1)
-values=full(hazard.intensity(max_tc_pos,:)); % get one TC footprint
-centroids.lon=hazard.lon; % as the gridding routine needs centroids
-centroids.lat=hazard.lat;
+values=full(hazard_TC.intensity(max_tc_pos,:)); % get one TC footprint
+centroids.lon=hazard_TC.lon; % as the gridding routine needs centroids
+centroids.lat=hazard_TC.lat;
 [X, Y, gridded_VALUE] = climada_gridded_VALUE(values,centroids);
 contourf(X, Y, gridded_VALUE,200,'edgecolor','none')
 hold on
@@ -186,22 +179,22 @@ colorbar
 title(sprintf('windfield [m/s] (event %i)',max_tc_pos));
 fprintf('max event %i\n',max_tc_pos);
 
-% up to here, hazard contains the tropical cyclone (TC) hazard event set
-
+% up to here, hazard_TC contains the tropical cyclone (TC) hazard event set
 
 % call the CORE code
 % ==================
-% hazard on input: the tropical cyclone (TC) hazard event set
-% hazard on output: the storm surge (TS) hazard event set
-hazard=climada_ts_hazard_set(hazard,hazard_set_file_ts,0,1);
+hazard_TS=climada_ts_hazard_set(hazard_TC,hazard_set_file_ts,0,1);
 
+fprintf('TS: max intensity=%f\n',full(max(max(hazard_TS.intensity)))); % a kind of easy check
+
+%figure;climada_hazard_plot(hazard_TS,0);
 
 % show biggest TS event
 figure(main_fig);
 subplot(1,2,2)
-values=full(hazard.intensity(max_tc_pos,:)); % get one tc footprint
-centroids.lon=hazard.lon; % as the gridding routine needs centroids
-centroids.lat=hazard.lat;
+values=full(hazard_TS.intensity(max_tc_pos,:)); % get one tc footprint
+centroids.lon=hazard_TS.lon; % as the gridding routine needs centroids
+centroids.lat=hazard_TS.lat;
 [X, Y, gridded_VALUE] = climada_gridded_VALUE(values,centroids);
 contourf(X, Y, gridded_VALUE,200,'edgecolor','none')
 hold on
@@ -222,4 +215,4 @@ if ~isempty(TEST_location)
     plot(TEST_location.longitude,TEST_location.latitude,'xk');
 end
 
-return
+%return

@@ -336,7 +336,7 @@ end
 
 %%fprintf('TS: max(max(hazard.intensity))=%f\n',full(max(max(hazard.intensity)))); % a kind of easy check
 
-if check_plots,climada_hazard_plot(hazard,0);end % show max surge over ALL events
+if check_plots,figure;climada_hazard_plot(hazard,0);end % show max surge over ALL events
 
 end % climada_ts_hazard_set
 
