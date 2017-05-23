@@ -56,6 +56,7 @@ function hazard=climada_ts_hazard_set(hazard,hazard_set_file,elevation_data,chec
 % david.bresch@gmail.com, 20160525, better error messaging for ETOPO issues
 % david.bresch@gmail.com, 20160529, renamed to climada_ts_hazard_set and tc_surge_hazard_create deleted
 % david.bresch@gmail.com, 20161009, strcmpi used
+% david.bresch@gmail.com, 20170523, > in save fprintf to identify latest version
 %-
 
 global climada_global
@@ -330,7 +331,7 @@ if ~isfield(hazard,'orig_event_count') % fix a minor issue with some hazard sets
 end
 
 if isempty(strfind(hazard_set_file,'NO_SAVE'))
-    fprintf('saving TS surge hazard set as %s\n',hazard_set_file);
+    fprintf('> saving TS surge hazard set as %s\n',hazard_set_file);
     save(hazard_set_file,'hazard',climada_global.save_file_version);
 end
 
