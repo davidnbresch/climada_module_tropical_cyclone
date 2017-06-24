@@ -60,7 +60,7 @@ function rainsum=climada_tr_rainfield(tc_track,centroids,~,~,~,~)
 rainsum=[]; % init
 
 %global climada_global
-if ~climada_init_vars, return; end
+%if ~climada_init_vars,return;end % init/import global variables
 
 if ~exist('tc_track'      ,'var'), tc_track       = []; end
 if ~exist('centroids'     ,'var'), centroids      = []; end
@@ -79,8 +79,8 @@ n_track_nodes  = length(tc_track.lat);
 n_centroids    = length(centroids.lat);
 cos_centroids_lat = cos(centroids.lat/180*pi); % calculate once for speedup
 
-zero_vect   =zeros(1,n_centroids); % for speedup, see further below
-rainsum = zero_vect;
+zero_vect   = zeros(1,n_centroids); % for speedup, see further below
+rainsum     = zero_vect;
 
 % calculate MaxSustainedWind if only CentralPressure given
 if ~isfield(tc_track,'MaxSustainedWind') && isfield(tc_track,'CentralPressure')
@@ -99,7 +99,6 @@ end;
 tc_track.MaxSustainedWindUnit='kn'; % after conversion
 
 % loop over track nodes
-%t0=clock; % TIMING
 for node_i = 1:n_track_nodes
     
     % just process the centroids close enough (+/-dlon resp. dlat)
@@ -126,10 +125,5 @@ for node_i = 1:n_track_nodes
 end % Loop over all TC Nodes
 
 rainsum(rainsum<rainsum_threshold)=0; % avoid small numbers (keeps more sparse later)
-
-%res.rainsum = zero_vect;
-%res.lat     = centroids.lat;
-%res.lon     = centroids.lon;
-%res.time=etime(clock,t0); % TIMING
 
 end % climada_tr_rainfield

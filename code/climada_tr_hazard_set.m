@@ -60,6 +60,7 @@ function hazard  = climada_tr_hazard_set(tc_track,hazard_set_file,centroids)
 % david.bresch@gmail.com, 20140804, GIT update
 % David N. Bresch, david.bresch@gmail.com, 20150819, climada_global.centroids_dir introduced
 % David N. Bresch, david.bresch@gmail.com, 20160529, parfor, much faster (factor 3-10)
+% david.bresch@gmail.com, 20170524, climada_progress2stdout
 %-
 
 hazard = []; % init
@@ -194,8 +195,6 @@ intensity = spalloc(n_tracks,n_centroids,...
 %intensity = zeros(n_tracks,n_centroids); % FASTER
 
 t0       = clock;
-fprintf('processing %i tracks @ %i centroids (parfor)\n',n_tracks,n_centroids);
-
 if n_tracks>10000
     default_min_TimeStep=2; % speeds up calculation by factor 2
 else
@@ -203,9 +202,20 @@ else
 end
 tc_track=climada_tc_equal_timestep(tc_track,default_min_TimeStep); % make equal timesteps
 
-parfor track_i=1:n_tracks
-    intensity(track_i,:) = climada_tr_rainfield(tc_track(track_i),centroids);
-end % track_i
+if climada_global.parfor
+    fprintf('processing %i tracks @ %i centroids (parfor)\n',n_tracks,n_centroids);
+    parfor track_i=1:n_tracks
+        intensity(track_i,:) = climada_tr_rainfield(tc_track(track_i),centroids);
+    end % track_i
+else
+    fprintf('processing %i tracks @ %i centroids (no parfor)\n',n_tracks,n_centroids);
+    climada_progress2stdout    % init, see terminate below
+    for track_i=1:n_tracks
+        intensity(track_i,:) = climada_tr_rainfield(tc_track(track_i),centroids);
+        climada_progress2stdout(track_i,n_tracks,100,'tracks'); % update
+    end % track_i
+    climada_progress2stdout(0) % terminate
+end % climada_global.parfor
 
 hazard.intensity=sparse(intensity); % store into struct, sparse() to be safe
 clear intensity % free up memory
@@ -233,6 +243,7 @@ hazard.matrix_density    = nnz(hazard.intensity)/numel(hazard.intensity);
 hazard.windfield_comment = msgstr;
 hazard.filename          = hazard_set_file;
 hazard.reference_year    = hazard_reference_year;
+hazard.units             = 'mm';
 
 fprintf('saving TR rain hazard set as %s\n',hazard_set_file);
 save(hazard_set_file,'hazard')
