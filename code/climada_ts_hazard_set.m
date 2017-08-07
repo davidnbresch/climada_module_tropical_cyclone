@@ -57,6 +57,7 @@ function hazard=climada_ts_hazard_set(hazard,hazard_set_file,elevation_data,chec
 % david.bresch@gmail.com, 20160529, renamed to climada_ts_hazard_set and tc_surge_hazard_create deleted
 % david.bresch@gmail.com, 20161009, strcmpi used
 % david.bresch@gmail.com, 20170523, > in save fprintf to identify latest version
+% david.bresch@gmail.com, 20170806, Bathymetry_file stored in global data dir, not within module
 %-
 
 global climada_global
@@ -71,7 +72,7 @@ if ~exist('check_plots','var'),check_plots=0;end
 % PARAMETERS
 %
 module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
-if ~isdir(module_data_dir),mkdir(fileparts(module_data_dir),'data');end % create the data dir, should it not exist (no further checking)
+%if ~isdir(module_data_dir),mkdir(fileparts(module_data_dir),'data');end % create the data dir, should it not exist (no further checking)
 %
 % whether we save the bathymetry tile for subsequent use
 save_bathymetry_flag=0; % default=0, see elevation_data
@@ -153,7 +154,7 @@ if ~isfield(hazard,'elevation_m')
     % file the bathymetry gets stored in ( might not be used later on, but
     % saved to speed up re-creation of the TS hazard event set
     [~,fN]=fileparts(hazard_set_file);
-    Bathymetry_file=[module_data_dir filesep fN '_bathy.mat'];
+    Bathymetry_file=[climada_global.data_dir filesep fN '_bathy.mat'];
     
     if ~exist(Bathymetry_file,'file')
         
