@@ -29,7 +29,7 @@ function hazard=climada_ts_hazard_set(hazard,hazard_set_file,elevation_data,chec
 %       information is used, hence elevation_data is ignored
 %       The variable hazard is modified on output (saves a lot of memory).
 %   hazard_set_file: the name of the newly created storm surge (TS) hazard
-%       event set (if ='NO_SAVE', the hazard is just returned, not saved)
+%       event set (if ='NO_SAVE' or ='NOSAVE', the hazard is just returned, not saved)
 %       > promted for if not given
 % OPTIONAL INPUT PARAMETERS:
 %   elevation_data: if a scalar, take elevation (or bathymetry) from etopo
@@ -331,7 +331,7 @@ if ~isfield(hazard,'orig_event_count') % fix a minor issue with some hazard sets
     end
 end
 
-if isempty(strfind(hazard_set_file,'NO_SAVE'))
+if isempty(strfind(hazard_set_file,'NO_SAVE')) && isempty(strfind(hazard_set_file,'NOSAVE'))
     fprintf('> saving TS surge hazard set as %s\n',hazard_set_file);
     save(hazard_set_file,'hazard',climada_global.save_file_version);
 end

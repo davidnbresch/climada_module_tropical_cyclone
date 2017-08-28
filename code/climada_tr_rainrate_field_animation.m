@@ -28,6 +28,7 @@ function climada_tr_rainrate_field_animation(tc_track, centroids,...
 % MODIFICATION HISTORY:
 % Lea Mueller, 20110603
 % david.bresch@gmail.com, 20140804, GIT update
+% david.bresch@gmail.com, 20170828, does not work any more
 %-
 
 
@@ -46,21 +47,22 @@ if isempty(aggregation)           , aggregation     = 6 ; end
 %---------------------------
 % rainrate for every hour (for every node from tc_track)
 % equal timestep within this routine. silent mode on
-[res tc_track centroids]  = climada_tr_rainfield(tc_track, centroids, 1, 1);
+res = climada_tr_rainfield(tc_track, centroids, 1, 1);
 stormdate = tc_track.datenum(1);
 stormname = tc_track.name;
 stormname(stormname == '_') = ' ';
 
 
 % aggregate wind field for specific hours (unit remains mm/s)
-[a b]             = size(res.rainrate);
+a            = size(res,1);
 aggregation_count = floor(a/aggregation);
+
 if aggregation > 1
     for i = 1:aggregation_count
-        res.rainrate_aggr(i,:) = mean(res.rainrate((i-1)*aggregation+1:i*aggregation,:));
+        res.rainrate_aggr(i,:) = mean(res((i-1)*aggregation+1:i*aggregation,:));
     end
 else
-    res.rainrate_aggr = res.rainrate;
+    res.rainrate_aggr = res;
 end
 
 
@@ -103,6 +105,7 @@ ylabel('Latitude','fontsize',8)
 
 set(gca,'fontsize',8) 
 
+time_ = stormdate;
 
 while replay == 1
     gridded_max_round     = 20;
@@ -120,8 +123,13 @@ while replay == 1
             time_ = stormdate + (agg_i-1)*aggregation/24;
             title([stormname ', '  datestr(time_,'dd-mmm-yy HH PM')],'fontsize',8)
             if check_avi
-                F   = getframe(fig);
-                mov = addframe(mov,F);
+                
+                %F   = getframe(fig);
+                %mov = addframe(mov,F);
+                
+                currFrame   = getframe(fig_handle);
+                writeVideo(vidObj,currFrame);
+    
             else
                 pause(0.01)    
             end
@@ -131,7 +139,8 @@ while replay == 1
         end
     end
     if check_avi
-        mov = close(mov);
+        %mov = close(mov);
+        close(vidObj);
         check_avi = [];
     end
 
@@ -140,7 +149,7 @@ while replay == 1
     
     colormap(cmap)
     gridded_max_round     = 700;
-    [X, Y, gridded_VALUE] = climada_gridded_VALUE(full(res.rainsum), centroids);
+    [X, Y, gridded_VALUE] = climada_gridded_VALUE(full(res), centroids);
     
     %set values lower than 0.1*unit to NaN for ploting
     gridded_VALUE(gridded_VALUE<(0.1)) = NaN;  
@@ -166,8 +175,12 @@ while replay == 1
                 delete(h)
                 check_avi = 1;
                 filename = [filesep 'results' filesep 'rainrate_animation_' stormname '_' int2str(aggregation) 'h.avi'];
-                mov      = avifile([climada_global.data_dir filename],'compression','none','fps',2,'quality',100);
-                fprintf('movie saved in \n %s\n', filename)
+                
+                vidObj = VideoWriter([climada_global.data_dir filename],'MPEG-4');
+                open(vidObj);
+
+                %mov      = avifile([climada_global.data_dir filename],'compression','none','fps',2,'quality',100);
+                fprintf('movie saved in %s\n', filename)
             case 'exit'
                 close
                 return

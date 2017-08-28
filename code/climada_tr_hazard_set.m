@@ -21,6 +21,7 @@ function hazard  = climada_tr_hazard_set(tc_track,hazard_set_file,centroids)
 %       details: see e.g. climada_random_walk
 %       > promted for if not given
 %   hazard_set_file: the name of the hazard set file
+%       If ='NOSAVE', do not save as .mat file
 %       > promted for if not given
 %   centroids: the variable grid centroids (see climada_centroids_read)
 %       a structure with
@@ -245,7 +246,9 @@ hazard.filename          = hazard_set_file;
 hazard.reference_year    = hazard_reference_year;
 hazard.units             = 'mm';
 
-fprintf('saving TR rain hazard set as %s\n',hazard_set_file);
-save(hazard_set_file,'hazard')
+if isempty(strfind(hazard_set_file,'NOSAVE'))
+    fprintf('saving TR rain hazard set as %s\n',hazard_set_file);
+    save(hazard_set_file,'hazard')
+end
 
 end % climada_tr_hazard_set
