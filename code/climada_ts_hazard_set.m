@@ -60,6 +60,12 @@ function hazard=climada_ts_hazard_set(hazard,hazard_set_file,elevation_data,chec
 %       hazard_TC=climada_tc_hazard_set(tc_track,'BGD_Barisal_TC_hist',entity);
 %       hazard_SRTM=climada_ts_hazard_set(hazard_TC,'_BGD_Barisal_TS_hist','SRTM',2,2);
 %       hazard_ETOP=climada_ts_hazard_set(hazard_TC,'_BGD_Barisal_TS_hist',[]    ,2,2);
+%       EDS(2)=climada_EDS_calc(entity,hazard_SRTM);EDS(2).annotation_name='surge, SRTM';
+%       EDS(3)=climada_EDS_calc(entity,hazard_ETOP);EDS(3).annotation_name='surge, ETOPO';
+%       EDS(4)=climada_EDS_combine(EDS);
+%       [DFC,fig,legend_str,legend_handle] =climada_EDS_DFC(EDS);
+%       em_data=emdat_read('','BGD','-TC',1,1);
+%       [legend_str,legend_handle]=emdat_barplot(em_data,'','','',legend_str,legend_handle)
 % OUTPUTS:
 %   hazard: a hazard event set, see core climada doc
 %       also written to a .mat file (see hazard_set_file)
@@ -347,13 +353,15 @@ if use_SRTM % SRTM
     elev_point_pos=find(hazard.elevation_m>0 & hazard.elevation_m<10);
     n_eff_centroids=length(elev_point_pos);
 
+    hazard.fraction=spones(hazard.intensity); % init
+
+    intensity=hazard.intensity(:,elev_point_pos); % init temp array
+    fraction=spones(intensity); % init temp array
+    
+    SRTM_centroid_i=SRTM.centroid_i;
+    SRTM_val=SRTM.val;
+    
     if climada_global.parfor
-        
-        intensity=hazard.intensity(:,elev_point_pos);
-        fraction=spones(intensity); % init
-        
-        SRTM_centroid_i=SRTM.centroid_i;
-        SRTM_val=SRTM.val;
         
         fprintf('generating %i surge fields at %i low-laying/coastal (of total %i) centroids (parallel) ...',n_events,n_eff_centroids,n_centroids);
         parfor centroid_ii=1:n_eff_centroids
@@ -402,101 +410,94 @@ if use_SRTM % SRTM
         % used before it is assigned in the parfor loop, a runtime error
         % will occur.    
         
+    else
+        
+        fprintf('generating %i surge fields at %i low-laying/coastal (of total %i) centroids\n',n_events,n_eff_centroids,n_centroids);
+        if verbose,climada_progress2stdout;end % init, see terminate below
+        
+        for centroid_ii=1:n_eff_centroids
+            
+            centroid_i=elev_point_pos(centroid_ii); % real i
+            
+            SRTM_val_tmp=double(SRTM_val(SRTM_centroid_i==centroid_i));
+            n_points=length(SRTM_val_tmp);
+            
+            if sum(SRTM_val_tmp)>0
+                
+                intensity_tmp=intensity(:,centroid_ii); % only at elevated points
+                fraction_tmp =fraction( :,centroid_ii); % only at elevated points
+                
+                arr_i=find(intensity_tmp); % non-zero intensity
+                
+                for event_ii=1:length(arr_i) % loop over non-zero surge points
+                    
+                    event_i=arr_i(event_ii); % real i
+                    
+                    surge_height=max(intensity_tmp(event_i)-SRTM_val_tmp,0);
+                    n_nonzeros=length(find(surge_height>0));
+                    
+                    if n_nonzeros>0
+                        intensity_tmp(event_i)=sum(surge_height)/n_nonzeros; % average height
+                        fraction_tmp( event_i)=n_nonzeros/n_points; % fraction of non-zero points within centroid
+                    else
+                        intensity_tmp(event_i)=0;
+                        fraction_tmp( event_i)=0;
+                    end
+                    
+                end % event_ii
+                
+                intensity(:,centroid_ii)=intensity_tmp;
+                fraction( :,centroid_ii)=fraction_tmp;
+                
+                if verbose,climada_progress2stdout(centroid_ii,n_eff_centroids,100,'centroids');end % update
+                
+            end % sum(SRTM_val_tmp)>0
+            
+        end % centroid_ii
+        if verbose,climada_progress2stdout(0);end % terminate
+        
         hazard.intensity(:,elev_point_pos)=intensity;clear intensity
         hazard.fraction( :,elev_point_pos)=fraction; clear fraction
         
-%         intensity=hazard.intensity(:,elev_point_pos);
-%         fraction=spones(intensity); % init
-% 
-%         SRTM_centroid_i=SRTM.centroid_i;
-%         SRTM_val=SRTM.val;
-%         
-%         fprintf('generating %i surge fields at %i elevated centroids (of total %i) parallel ...',n_events,length(elev_point_pos),n_centroids);
-%         parfor event_i=1:n_events
-%             
-%             intensity_tmp=intensity(event_i,:); % only at elevated points
-%             fraction_tmp =fraction(event_i,:); % only at elevated points
-%             
-%             arr_i=find(intensity_tmp); % as only few centroids >0 for each event
+%         % slow event loop
+%         for event_i=1:n_events
+%             arr_i=find(hazard.intensity(event_i,elev_point_pos)); % to avoid de-sparsify all elements
 %             
 %             for centroid_ii=1:length(arr_i) % loop over non-zero surge points
-%                 centroid_i=arr_i(centroid_ii); % make absolute
+%                 centroid_i=elev_point_pos(arr_i(centroid_ii)); % make absolute
 %                 
-%                 SRTM_pos=find(SRTM_centroid_i==centroid_i);
+%                 SRTM_pos=find(SRTM.centroid_i==centroid_i);
 %                 n_points=length(SRTM_pos);
 %                 if n_points>0
-%                     surge_height=max(intensity_tmp(1,centroid_i)-double(SRTM_val(SRTM_pos))-height_precision_m,0);
+%                     surge_height=max(hazard.intensity(event_i,centroid_i)-double(SRTM.val(SRTM_pos))-height_precision_m,0);
 %                     n_nonzeros=length(find(surge_height>0));
 %                 else
 %                     surge_height=0;
 %                     n_nonzeros=0; % all zero
 %                 end
 %                 if n_nonzeros>0
-%                     intensity_tmp(1,centroid_i)=sum(surge_height)/n_nonzeros; % average height
-%                     fraction_tmp( 1,centroid_i)=n_nonzeros/n_points; % fraction of non-zero points within centroid
+%                     hazard.intensity(event_i,centroid_i)=sum(surge_height)/n_nonzeros; % average height
+%                     hazard.fraction( event_i,centroid_i)=n_nonzeros/n_points; % fraction of non-zero points within centroid
 %                 else
-%                     intensity_tmp(1,centroid_i)=0;
-%                     fraction_tmp( 1,centroid_i)=0;
+%                     hazard.intensity(event_i,centroid_i)=0;
+%                     hazard.fraction( event_i,centroid_i)=0;
 %                 end
 %                 
 %             end % centroid_i
 %             
-%             intensity(event_i,:)=intensity_tmp;
-%             fraction( event_i,:)=fraction_tmp;
+%             if verbose,climada_progress2stdout(event_i,n_events,20,'events');end % update
 %             
 %         end % event_i
-%         fprintf(' done\n');
-% 
-%         clear surge_height % to avoid Warning by parser, it said:
-%         % The temporary variable surge_height will be cleared at the
-%         % beginning of each iteration of the parfor loop. Any value
-%         % assigned to it before the loop will be lost.  If surge_height is
-%         % used before it is assigned in the parfor loop, a runtime error
-%         % will occur.    
 %         
-%         hazard.intensity(:,elev_point_pos)=intensity;clear intensity
-%         hazard.fraction( :,elev_point_pos)=fraction; clear fraction
-        
-    else
-        
-        hazard.fraction=spones(hazard.intensity); % init
-
-        fprintf('generating %i surge fields at %i elevated centroids (of total %i)\n',n_events,length(elev_point_pos),n_centroids);
-        if verbose,climada_progress2stdout;end % init, see terminate below
-        
-        for event_i=1:n_events
-            arr_i=find(hazard.intensity(event_i,elev_point_pos)); % to avoid de-sparsify all elements
-            
-            for centroid_ii=1:length(arr_i) % loop over non-zero surge points
-                centroid_i=elev_point_pos(arr_i(centroid_ii)); % make absolute
-                
-                SRTM_pos=find(SRTM.centroid_i==centroid_i);
-                n_points=length(SRTM_pos);
-                if n_points>0
-                    surge_height=max(hazard.intensity(event_i,centroid_i)-double(SRTM.val(SRTM_pos))-height_precision_m,0);
-                    n_nonzeros=length(find(surge_height>0));
-                else
-                    surge_height=0;
-                    n_nonzeros=0; % all zero
-                end
-                if n_nonzeros>0
-                    hazard.intensity(event_i,centroid_i)=sum(surge_height)/n_nonzeros; % average height
-                    hazard.fraction( event_i,centroid_i)=n_nonzeros/n_points; % fraction of non-zero points within centroid
-                else
-                    hazard.intensity(event_i,centroid_i)=0;
-                    hazard.fraction( event_i,centroid_i)=0;
-                end
-                
-            end % centroid_i
-            
-            if verbose,climada_progress2stdout(event_i,n_events,20,'events');end % update
-            
-        end % event_i
-        
-        % end % n_events<n_centroids
-        if verbose,climada_progress2stdout(0);end % terminate
+%         end % n_events<n_centroids
+%         if verbose,climada_progress2stdout(0);end % terminate
         
     end % climada_global.parfor
+    
+   
+    hazard.intensity(:,elev_point_pos)=intensity;clear intensity
+    hazard.fraction( :,elev_point_pos)=fraction; clear fraction
+    hazard.intensity(:,hazard.elevation_m>=10)=0; % clear high ground
     
     hazard.intensity=max(hazard.intensity,0); % avoid negative
     hazard.intensity(hazard.intensity>10)=10; % avoid heights >10m
