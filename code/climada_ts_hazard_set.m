@@ -83,6 +83,7 @@ function hazard=climada_ts_hazard_set(hazard,hazard_set_file,elevation_data,chec
 % david.bresch@gmail.com, 20170523, > in save fprintf to identify latest version
 % david.bresch@gmail.com, 20170806, Bathymetry_file stored in global data dir, not within module
 % david.bresch@gmail.com, 20171103, using SRTM data introduced
+% eberenz@posteo.eu,      20171107, prevent out-of-bounds error for etopo_get(bathy_coords)
 %-
 
 global climada_global
@@ -209,6 +210,13 @@ if ~isfield(hazard,'elevation_m')
             
             bb=0.1; % 0.1 degree of bathy outside centroids (to allow for smooth interp)
             bathy_coords=[centroids_rect(1)-bb centroids_rect(2)+bb centroids_rect(3)-bb centroids_rect(4)+bb];
+            
+            % prevent out-of-bounds error for etopo_get(bathy_coords):
+            if le(bathy_coords(1),-180), bathy_coords(1) = -179.9; end 
+            if ge(bathy_coords(2), 180), bathy_coords(2) =  179.9; end
+            if le(bathy_coords(3), -90), bathy_coords(3) =  -89.9; end
+            if ge(bathy_coords(4),  90), bathy_coords(4) =   89.9; end 
+            
             SRTM=climada_srtm_get(bathy_coords);
             
             % prepare inputs for climada_regrid
