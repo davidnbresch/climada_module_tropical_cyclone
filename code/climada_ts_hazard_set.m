@@ -210,13 +210,7 @@ if ~isfield(hazard,'elevation_m')
             
             bb=0.1; % 0.1 degree of bathy outside centroids (to allow for smooth interp)
             bathy_coords=[centroids_rect(1)-bb centroids_rect(2)+bb centroids_rect(3)-bb centroids_rect(4)+bb];
-            
-            % prevent out-of-bounds error for etopo_get(bathy_coords):
-            if le(bathy_coords(1),-180), bathy_coords(1) = -179.9; end 
-            if ge(bathy_coords(2), 180), bathy_coords(2) =  179.9; end
-            if le(bathy_coords(3), -90), bathy_coords(3) =  -89.9; end
-            if ge(bathy_coords(4),  90), bathy_coords(4) =   89.9; end 
-            
+                      
             SRTM=climada_srtm_get(bathy_coords);
             
             % prepare inputs for climada_regrid
@@ -285,7 +279,13 @@ if ~isfield(hazard,'elevation_m')
                 hazard=[];
                 return
             end
-            %bathy_coords =[-179   179  -60.9500   89] % 20171025, dnb, for TS global
+            % bathy_coords =[-179   179  -60.9500   89] % 20171025, dnb, for TS global
+            % 20171107 se, flexible solution for TS global (to prevent out-of-bounds error for etopo_get)
+            if le(bathy_coords(1),-180), bathy_coords(1) = -179; end 
+            if ge(bathy_coords(2), 180), bathy_coords(2) =  179; end
+            if le(bathy_coords(3), -90), bathy_coords(3) =  -60.9500; end
+            if ge(bathy_coords(4),  90), bathy_coords(4) =   89; end 
+            
             BATI=etopo_get(bathy_coords,check_plot);
             if isempty(BATI),hazard=[];
                 return
