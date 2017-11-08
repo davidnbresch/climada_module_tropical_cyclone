@@ -60,6 +60,7 @@ function hazard=climada_ts_hazard_set(hazard,hazard_set_file,elevation_data,chec
 %       hazard_TC=climada_tc_hazard_set(tc_track,'BGD_Barisal_TC_hist',entity);
 %       hazard_SRTM=climada_ts_hazard_set(hazard_TC,'_BGD_Barisal_TS_hist','SRTM',2,2);
 %       hazard_ETOP=climada_ts_hazard_set(hazard_TC,'_BGD_Barisal_TS_hist',[]    ,2,2);
+%       EDS   =climada_EDS_calc(entity,hazard_TC);  EDS(1).annotation_name='wind';
 %       EDS(2)=climada_EDS_calc(entity,hazard_SRTM);EDS(2).annotation_name='surge, SRTM';
 %       EDS(3)=climada_EDS_calc(entity,hazard_ETOP);EDS(3).annotation_name='surge, ETOPO';
 %       EDS(4)=climada_EDS_combine(EDS);
