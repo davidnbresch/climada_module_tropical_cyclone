@@ -36,6 +36,7 @@ function hazard = climada_hazard_climate_screw(hazard, hazard_set_file, referenc
 % Gilles Stassen, gillesstassen@hotmail.com, 20150421 based on original
 %           function climada_hazard_clim_scen_advanced by David N. Bresch & Lea Mueller
 % Lea Mueller, muellele@gmail.com, 20151021, do not change hazard if it corresponds already to the required year
+% Samuel Eberenz, samweli@posteo.de, 20171109, debugged for func2str returning string without leading '@'.
 %-
 
 global climada_global
@@ -132,12 +133,17 @@ for i = 1:length(screw)
     if (reference_year - hazard.reference_year)~= 0
         time_frac = (reference_year-hazard.reference_year)/(screw(i).year-hazard.reference_year);
         switch func2str(screw(i).bsxfun_op)
+            case 'times'
+                change = 1+ (screw(i).change-1) * time_frac;
             case '@times'
                 change = 1+ (screw(i).change-1) * time_frac;
+            case 'plus'
+                change = screw(i).change * time_frac;
             case '@plus'
                 change = screw(i).change * time_frac;
             otherwise 
                 change = screw(i).change;
+                warning('screw(%i).bsxfun_op not recognized.',i)
         end % crew(i).bsxfun_op
         fprintf('Apply change %2.4f \n', change)
         
