@@ -25,18 +25,26 @@ function hazard = climada_hazard_climate_screw(hazard, hazard_set_file, referenc
 %                   .hazard_fld     defines the hazard field to be changed
 %                   .change         extent of the change at time horizon
 %                   .year           time horizon
-%                   .hazard_crit    hazard field to which criteria apply
-%                   .criteria       criteria for events/locations to change
+%                   .hazard_crit    hazard field(s) to which criteria apply 
+%                   .criteria       criteria for events/locations to change (use cell {} for multiple criteria)
 %                   .bsxfun_op      operation of change (e.g. @times,@plus) (function handle)
+%                   .reference      [optional] reference to literature the screw is based on
 %               specifying N transformations to the original hazard set.
 % OUTPUTS:
 %   hazard:     new hazard for a future reference year, given a climate
 %               change scenario specified by screw.
+% NOTE:
+% Multi-criteria: If more than one criteria field is to be used for screw.hazard_crit,
+% initiate these to screw parameters as cell. Lihe this:
+%                       screw(1).hazard_crit        = {'category','yyyy'};
+%                       screw(1).criteria           = {[1 2 3 4 5] [1990:2020]};
 % MODIFICATION HISTORY:
 % Gilles Stassen, gillesstassen@hotmail.com, 20150421 based on original
 %           function climada_hazard_clim_scen_advanced by David N. Bresch & Lea Mueller
 % Lea Mueller, muellele@gmail.com, 20151021, do not change hazard if it corresponds already to the required year
 % Samuel Eberenz, samweli@posteo.de, 20171109, debugged for func2str returning string without leading '@'.
+% Samuel Eberenz, samweli@posteo.de, 20171113, enable more than one field to be used for criteria (multi-criteria)
+% Samuel Eberenz, samweli@posteo.de, 20171113, add optional literature reference and write hazard.scenario
 %-
 
 global climada_global
@@ -47,6 +55,12 @@ if ~exist('hazard'          , 'var'), hazard           = []; end
 if ~exist('hazard_set_file' , 'var'), hazard_set_file  = []; end
 if ~exist('reference_year'  , 'var'), reference_year   = []; end
 if ~exist('screw'           , 'var'), screw            = []; end
+
+try % check for literature reference in screw(1) in order to mention it in hazard.scenario
+    lit_reference = ['[' screw(1).reference ']']; 
+catch
+    lit_reference = '';
+end
 
 % prompt for hazard if not given
 if isempty(hazard) % local GUI
@@ -127,8 +141,24 @@ hazard_cc = hazard;
 % implement changes of climate scenario
 for i = 1:length(screw)
     % identify relevant events/centroids to change
-    crit_ndx = ismember(hazard.(screw(i).hazard_crit),screw(i).criteria);
-    
+    if iscell(screw(i).hazard_crit) && iscell(screw(i).criteria) %% multiple criteria
+        for j = 1:length(screw(i).hazard_crit)
+            crit_ndx_tmp = ismember(hazard.(screw(i).hazard_crit{j}),screw(i).criteria{j});
+            switch j
+                case 1
+                    crit_ndx = crit_ndx_tmp;
+                otherwise
+                    crit_ndx = logical(crit_ndx .* crit_ndx_tmp); % cut criteria (= logical operation AND)     
+            end
+        end
+        clear crit_ndx_tmp
+    elseif ~iscell(screw(i).hazard_crit) && ~iscell(screw(i).criteria)  %% no multiple criteria
+        crit_ndx = ismember(hazard.(screw(i).hazard_crit),screw(i).criteria);
+    else
+        cprintf([1 0 0], sprintf('ERROR: screw.criteria and screw.hazard_crit must both or neither be cells')); 
+        crit_ndx = 0;
+    end
+
     % linearly interpolate from screw.year to desired reference year
     if (reference_year - hazard.reference_year)~= 0
         time_frac = (reference_year-hazard.reference_year)/(screw(i).year-hazard.reference_year);
@@ -171,6 +201,7 @@ end % i = 1:length(screw)
 hazard_cc.reference_year = reference_year;
 hazard_cc.filename       = [hazard.filename '_cc_' int2str(reference_year)];
 hazard_cc.comment        = [hazard.peril_ID ' climate change scenario ' int2str(reference_year)];
+hazard_cc.scenario       = [hazard.peril_ID ' climate change scenario ' int2str(hazard.reference_year) ' - ' int2str(reference_year) ' ' lit_reference];
 hazard                   = hazard_cc;
 
 % prompt for where to save hazard_clim_file if not given
