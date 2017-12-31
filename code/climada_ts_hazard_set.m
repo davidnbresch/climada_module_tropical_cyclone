@@ -99,7 +99,7 @@ if ~exist('verbose','var'),verbose=1;end
 
 % PARAMETERS
 %
-module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
+%module_data_dir=[fileparts(fileparts(mfilename('fullpath'))) filesep 'data'];
 %if ~isdir(module_data_dir),mkdir(fileparts(module_data_dir),'data');end % create the data dir, should it not exist (no further checking)
 %
 % whether we save the bathymetry tile for subsequent use
@@ -110,7 +110,7 @@ height_precision_m=0.05; % in m, up to 5 cm ignored
 
 if strcmpi(elevation_data,'SRTM')
     elevation_data=[];
-    use_SRTM=1; % use high-res SRTM data (90m) 
+    use_SRTM=1; % use high-res SRTM data (90m)
 else
     use_SRTM=0; % use default (fast) ETOPO data (1.9km)
 end
@@ -211,7 +211,7 @@ if ~isfield(hazard,'elevation_m')
             
             bb=0.1; % 0.1 degree of bathy outside centroids (to allow for smooth interp)
             bathy_coords=[centroids_rect(1)-bb centroids_rect(2)+bb centroids_rect(3)-bb centroids_rect(4)+bb];
-                      
+            
             SRTM=climada_srtm_get(bathy_coords);
             
             % prepare inputs for climada_regrid
@@ -228,13 +228,17 @@ if ~isfield(hazard,'elevation_m')
             
             arr_target.lon=hazard.lon;arr_target.lat=hazard.lat;
             dd=abs(diff(hazard.lon));arr_target.max_dist=min(dd(dd>0))/2; % pass on max distance to consider
-            [arr_target,SRTM]=climada_regrid(SRTM,arr_target,check_plot-1,1); % inly plot for SUPERCHECK
+            [arr_target,SRTM]=climada_regrid(SRTM,arr_target,check_plot-1,1); % only plot for SUPERCHECK
             SRTM.elevation_m=arr_target.val; % to copy in SRTM for save
             clear arr_target % free up memory
             SRTM.centroid_i=SRTM.target_i;SRTM=rmfield(SRTM,'target_i'); % better name for local use
             
+            %if isempty(strfind(SRTM_save_file,'NOSAVE')) && isempty(strfind(SRTM_save_file,'NO_SAVE'))
             fprintf('SRTM temp saved as %s\n',SRTM_save_file);
             save(SRTM_save_file,'SRTM');
+            if ~isempty(strfind(SRTM_save_file,'NOSAVE')) || ~isempty(strfind(SRTM_save_file,'NO_SAVE'))
+                fprintf('!!! WARNING: delete %s ASAP (subsequent calls with otherwise use same SRTM area) !!!\n',SRTM_save_file);
+            end
             
             hazard.elevation_m=SRTM.elevation_m;
             
@@ -282,10 +286,10 @@ if ~isfield(hazard,'elevation_m')
             end
             % bathy_coords =[-179   179  -60.9500   89] % 20171025, dnb, for TS global
             % 20171107 se, flexible solution for TS global (to prevent out-of-bounds error for etopo_get)
-            if le(bathy_coords(1),-180), bathy_coords(1) = -179; end 
+            if le(bathy_coords(1),-180), bathy_coords(1) = -179; end
             if ge(bathy_coords(2), 180), bathy_coords(2) =  179; end
             if le(bathy_coords(3), -90), bathy_coords(3) =  -60.9500; end
-            if ge(bathy_coords(4),  90), bathy_coords(4) =   89; end 
+            if ge(bathy_coords(4),  90), bathy_coords(4) =   89; end
             
             BATI=etopo_get(bathy_coords,check_plot);
             if isempty(BATI),hazard=[];
@@ -321,7 +325,7 @@ if ~isfield(hazard,'elevation_m')
             xlim(xlim_tmp);ylim(ylim_tmp);
             title('ETOPO elevation [m]')
         end % check_plot
-            
+        
         if isfield(hazard,'windfield_comment'),hazard=rmfield(hazard,'windfield_comment');end % remove
         if exist('BATI','var')
             hazard.surgefield_comment=sprintf('created based on TC using proxy surge height and ETOPO bathymetry %s',BATI.sourcefile);
@@ -361,9 +365,9 @@ if use_SRTM % SRTM
     %if n_events<n_centroids % loop over events, since less events than centroids
     elev_point_pos=find(hazard.elevation_m>0 & hazard.elevation_m<10);
     n_eff_centroids=length(elev_point_pos);
-
+    
     hazard.fraction=spones(hazard.intensity); % init
-
+    
     intensity=hazard.intensity(:,elev_point_pos); % init temp array
     fraction=spones(intensity); % init temp array
     
@@ -411,13 +415,13 @@ if use_SRTM % SRTM
             
         end % centroid_ii
         fprintf(' done\n');
-
+        
         clear surge_height % to avoid Warning by parser, it said:
         % The temporary variable surge_height will be cleared at the
         % beginning of each iteration of the parfor loop. Any value
         % assigned to it before the loop will be lost.  If surge_height is
         % used before it is assigned in the parfor loop, a runtime error
-        % will occur.    
+        % will occur.
         
     else
         
@@ -465,52 +469,51 @@ if use_SRTM % SRTM
         end % centroid_ii
         if verbose,climada_progress2stdout(0);end % terminate
         
-        hazard.intensity(:,elev_point_pos)=intensity;clear intensity
-        hazard.fraction( :,elev_point_pos)=fraction; clear fraction
+%         hazard.intensity(:,elev_point_pos)=intensity;clear intensity
+%         hazard.fraction( :,elev_point_pos)=fraction; clear fraction
         
-%         % slow event loop
-%         for event_i=1:n_events
-%             arr_i=find(hazard.intensity(event_i,elev_point_pos)); % to avoid de-sparsify all elements
-%             
-%             for centroid_ii=1:length(arr_i) % loop over non-zero surge points
-%                 centroid_i=elev_point_pos(arr_i(centroid_ii)); % make absolute
-%                 
-%                 SRTM_pos=find(SRTM.centroid_i==centroid_i);
-%                 n_points=length(SRTM_pos);
-%                 if n_points>0
-%                     surge_height=max(hazard.intensity(event_i,centroid_i)-double(SRTM.val(SRTM_pos))-height_precision_m,0);
-%                     n_nonzeros=length(find(surge_height>0));
-%                 else
-%                     surge_height=0;
-%                     n_nonzeros=0; % all zero
-%                 end
-%                 if n_nonzeros>0
-%                     hazard.intensity(event_i,centroid_i)=sum(surge_height)/n_nonzeros; % average height
-%                     hazard.fraction( event_i,centroid_i)=n_nonzeros/n_points; % fraction of non-zero points within centroid
-%                 else
-%                     hazard.intensity(event_i,centroid_i)=0;
-%                     hazard.fraction( event_i,centroid_i)=0;
-%                 end
-%                 
-%             end % centroid_i
-%             
-%             if verbose,climada_progress2stdout(event_i,n_events,20,'events');end % update
-%             
-%         end % event_i
-%         
-%         end % n_events<n_centroids
-%         if verbose,climada_progress2stdout(0);end % terminate
+        %         % slow event loop
+        %         for event_i=1:n_events
+        %             arr_i=find(hazard.intensity(event_i,elev_point_pos)); % to avoid de-sparsify all elements
+        %
+        %             for centroid_ii=1:length(arr_i) % loop over non-zero surge points
+        %                 centroid_i=elev_point_pos(arr_i(centroid_ii)); % make absolute
+        %
+        %                 SRTM_pos=find(SRTM.centroid_i==centroid_i);
+        %                 n_points=length(SRTM_pos);
+        %                 if n_points>0
+        %                     surge_height=max(hazard.intensity(event_i,centroid_i)-double(SRTM.val(SRTM_pos))-height_precision_m,0);
+        %                     n_nonzeros=length(find(surge_height>0));
+        %                 else
+        %                     surge_height=0;
+        %                     n_nonzeros=0; % all zero
+        %                 end
+        %                 if n_nonzeros>0
+        %                     hazard.intensity(event_i,centroid_i)=sum(surge_height)/n_nonzeros; % average height
+        %                     hazard.fraction( event_i,centroid_i)=n_nonzeros/n_points; % fraction of non-zero points within centroid
+        %                 else
+        %                     hazard.intensity(event_i,centroid_i)=0;
+        %                     hazard.fraction( event_i,centroid_i)=0;
+        %                 end
+        %
+        %             end % centroid_i
+        %
+        %             if verbose,climada_progress2stdout(event_i,n_events,20,'events');end % update
+        %
+        %         end % event_i
+        %
+        %         end % n_events<n_centroids
+        %         if verbose,climada_progress2stdout(0);end % terminate
         
     end % climada_global.parfor
     
-   
-    hazard.intensity(:,elev_point_pos)=intensity;clear intensity
+    hazard.intensity(:,elev_point_pos)=intensity; clear intensity
     hazard.fraction( :,elev_point_pos)=fraction; clear fraction
     hazard.intensity(:,hazard.elevation_m>=10)=0; % clear high ground
     
     hazard.intensity=max(hazard.intensity,0); % avoid negative
     hazard.intensity(hazard.intensity>10)=10; % avoid heights >10m
-        
+    
 else % ETOPO
     
     % using ETOPO, fast, but coarse
@@ -575,7 +578,7 @@ if verbose,fprintf('TS: max(max(hazard.intensity))=%f\n',full(max(max(hazard.int
 if check_plot
     figure('Name',[mfilename ' max intens']);
     climada_hazard_plot_nogrid(hazard,0); % show max surge over ALL events
-
+    
     figure('Name',[mfilename ' histogram']);
     nzp=hazard.fraction>0;
     subplot(2,1,1)
@@ -594,7 +597,7 @@ end % climada_ts_hazard_set
 % % wind speed to surge height conversion (CORE_CONVERSION)
 % % =====================================
 %
-% % uncomment one level, then copy/paste below into MATLAB command window 
+% % uncomment one level, then copy/paste below into MATLAB command window
 % % to run, i.e. to show the conversion fucntion as used above
 %
 % mph2ms=0.44704;
