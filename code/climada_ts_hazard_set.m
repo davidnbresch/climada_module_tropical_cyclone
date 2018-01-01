@@ -85,6 +85,7 @@ function hazard=climada_ts_hazard_set(hazard,hazard_set_file,elevation_data,chec
 % david.bresch@gmail.com, 20170806, Bathymetry_file stored in global data dir, not within module
 % david.bresch@gmail.com, 20171103, using SRTM data introduced
 % eberenz@posteo.eu,      20171107, prevent out-of-bounds error for etopo_get(bathy_coords)
+% david.bresch@gmail.com, 20180101, for SRTM mapping, use a bit wider a distance
 %-
 
 global climada_global
@@ -227,7 +228,7 @@ if ~isfield(hazard,'elevation_m')
             SRTM.val=SRTM.val(pos);
             
             arr_target.lon=hazard.lon;arr_target.lat=hazard.lat;
-            dd=abs(diff(hazard.lon));arr_target.max_dist=min(dd(dd>0))/2; % pass on max distance to consider
+            dd=abs(diff(hazard.lon));arr_target.max_dist=min(dd(dd>0))/2*sqrt(2); % pass on max distance to consider
             [arr_target,SRTM]=climada_regrid(SRTM,arr_target,check_plot-1,1); % only plot for SUPERCHECK
             SRTM.elevation_m=arr_target.val; % to copy in SRTM for save
             clear arr_target % free up memory
@@ -235,16 +236,20 @@ if ~isfield(hazard,'elevation_m')
             
             %if isempty(strfind(SRTM_save_file,'NOSAVE')) && isempty(strfind(SRTM_save_file,'NO_SAVE'))
             fprintf('SRTM temp saved as %s\n',SRTM_save_file);
-            save(SRTM_save_file,'SRTM');
-            if ~isempty(strfind(SRTM_save_file,'NOSAVE')) || ~isempty(strfind(SRTM_save_file,'NO_SAVE'))
-                fprintf('!!! WARNING: delete %s ASAP (subsequent calls with otherwise use same SRTM area) !!!\n',SRTM_save_file);
+            if isempty(strfind(SRTM_save_file,'NOSAVE')) && isempty(strfind(SRTM_save_file,'NO_SAVE'))
+                save(SRTM_save_file,'SRTM');
+            else
+                %save(SRTM_save_file,'SRTM'); % in case you enable this, also enable next line:
+                %fprintf('!!! WARNING: delete %s ASAP (subsequent calls with otherwise use same SRTM area) !!!\n',SRTM_save_file);
             end
             
             hazard.elevation_m=SRTM.elevation_m;
             
             if check_plot
-                marker_size=5;
+                marker_size=4;
                 mav=max(hazard.elevation_m);cmap=colormap;
+                %mav=10;[cmap,c_ax] = climada_colormap('TS'); % SPECIAL for Barisal
+                %save('__SRTM_TEST_plotdata','SRTM','hazard'); % SPECIAL for Barisal
                 figure('Name',[mfilename ' SRTM elevation']);
                 plotclr(SRTM.lon,SRTM.lat,SRTM.val,'s',marker_size,1,0,mav,cmap,0,0);hold on;
                 plotclr(hazard.lon,hazard.lat,full(hazard.elevation_m),'s',marker_size,1,0,mav,cmap,0,0);
