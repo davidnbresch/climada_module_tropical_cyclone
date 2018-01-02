@@ -4,31 +4,33 @@ function hazard=climada_ts_hazard_set(hazard,hazard_set_file,elevation_data,chec
 %   climada_ts_hazard_set
 % PURPOSE:
 %   create a storm surge (TS) hazard event, based on an existing
-%   tropical cyclone (TC) hazard event set
+%   tropical cyclone (TC) hazard event set and the SLOSH model ()
 %
 %   Either using ETOPO (1.9km, fast, default) or SRTM (90m, computationally
-%   intensive) elevation data
+%   intensive) elevation data.
 %
 %   two steps:
-%   1) check wether we need to obtain bathymetry (high res, calls etopo_get
-%   from module etopo) or elevation is provided (see elevation_data)
-%   2) convert all TC footprints into TS footprints
-%   see CORE_CONVERSION in code below for the conversion formula
+%   1)  check wether we need to obtain bathymetry (calls etopo_get or
+%       climada_srtm_get from module
+%       https://github.com/davidnbresch/climada_module_elevation_models) or
+%       elevation is provided (see elevation_data)   
+%   2)  convert all TC footprints into TS footprints, using the SLOSH
+%       approach, see CORE_CONVERSION in code below for the conversion formula 
+%       (see also http://www.nhc.noaa.gov/surge/slosh.php)
 %
 %   If you set climada_global.parfor=1, both the gridding of elevation as
 %   well as the event calculation will be parallelized
 %
-%   Note on bathymetry data: see https://github.com/davidnbresch/climada_module_elevation_models
-%
 %   see tc_surge_TEST for a testbed for this code
 %
+%   ETOPO, see etopo_get and for the data https://www.ngdc.noaa.gov/mgg/global/, doi:10.7289/V5C8276M 
+%   SRTM, see climada_srtm_get and for the data (usually fetched automatically by climada_srtm_get) http://srtm.csi.cgiar.org 
 % CALLING SEQUENCE:
 %   hazard=climada_ts_hazard_set(hazard,hazard_set_file,elevation_data,check_plot)
 % EXAMPLE:
-%   entity=climada_entity_country('Bangladesh');
 %   hazard_TC=climada_hazard_load('TCNA_today_small')
-%   hazard_TS=climada_ts_hazard_set(hazard_TC,'TCNA_today_small_TS')
-%   hazard_TS=climada_ts_hazard_set(hazard_TC,'TCNA_today_small_TS','SRTM') % test SRTM (90m) elevation data
+%   hazard_TS_ETOP=climada_ts_hazard_set(hazard_TC,'TCNA_today_small_TS','ETOPO',10)
+%   hazard_TS_SRTM=climada_ts_hazard_set(hazard_TC,'TCNA_today_small_TS','SRTM', 10) % test SRTM (90m) elevation data
 % INPUTS:
 %   hazard: an already existing tropical cyclone (TC) hazard event set (a
 %       TC hazard structure)
@@ -51,22 +53,23 @@ function hazard=climada_ts_hazard_set(hazard,hazard_set_file,elevation_data,chec
 %       information is used.
 %       ='SRTM': use SRTM (90m) elevation data. Quite time consuming, but
 %       much more precise, e.g. setting hazard.fraction
-%   check_plot: =1, do show check plots (only if BATI used), =0: no plots (default)
-%       if =2, also show mapping for SRTM re-gridding (plot takes time)
+%   check_plot: =1, do show check plots, =0: no plots (default)
+%       if =X, use range 0..Xm in plot of elevation
+%       if negative, also show mapping for SRTM re-gridding (plot takes a lot of time!)
 %   verbose: =1, verbose mode (default), =0: almost silent
 %       =2: SUPERTEST mode for Barisal, Bangladesh, hence run:
-%       entity=climada_nightlight_entity('Bangladesh','Barisal')
-%       tc_track=climada_tc_track_load('nio_hist')
-%       hazard_TC=climada_tc_hazard_set(tc_track,'BGD_Barisal_TC_hist',entity);
-%       hazard_SRTM=climada_ts_hazard_set(hazard_TC,'_BGD_Barisal_TS_hist','SRTM',2,2);
-%       hazard_ETOP=climada_ts_hazard_set(hazard_TC,'_BGD_Barisal_TS_hist',[]    ,2,2);
-%       EDS   =climada_EDS_calc(entity,hazard_TC);  EDS(1).annotation_name='wind';
-%       EDS(2)=climada_EDS_calc(entity,hazard_SRTM);EDS(2).annotation_name='surge, SRTM';
-%       EDS(3)=climada_EDS_calc(entity,hazard_ETOP);EDS(3).annotation_name='surge, ETOPO';
-%       EDS(4)=climada_EDS_combine(EDS);
-%       [DFC,fig,legend_str,legend_handle] =climada_EDS_DFC(EDS);
-%       em_data=emdat_read('','BGD','-TC',1,1);
-%       [legend_str,legend_handle]=emdat_barplot(em_data,'','','',legend_str,legend_handle)
+%           entity=climada_nightlight_entity('Bangladesh','Barisal')
+%           tc_track=climada_tc_track_load('nio_hist')
+%           hazard_TC=climada_tc_hazard_set(tc_track,'BGD_Barisal_TC_hist',entity);
+%           hazard_SRTM=climada_ts_hazard_set(hazard_TC,'_BGD_Barisal_TS_hist','SRTM',2,2);
+%           hazard_ETOP=climada_ts_hazard_set(hazard_TC,'_BGD_Barisal_TS_hist',[]    ,2,2);
+%           EDS   =climada_EDS_calc(entity,hazard_TC);  EDS(1).annotation_name='wind';
+%           EDS(2)=climada_EDS_calc(entity,hazard_SRTM);EDS(2).annotation_name='surge, SRTM';
+%           EDS(3)=climada_EDS_calc(entity,hazard_ETOP);EDS(3).annotation_name='surge, ETOPO';
+%           EDS(4)=climada_EDS_combine(EDS);
+%           [DFC,fig,legend_str,legend_handle] =climada_EDS_DFC(EDS);
+%           em_data=emdat_read('','BGD','-TC',1,1);
+%           [legend_str,legend_handle]=emdat_barplot(em_data,'','','',legend_str,legend_handle)
 % OUTPUTS:
 %   hazard: a hazard event set, see core climada doc
 %       also written to a .mat file (see hazard_set_file)
@@ -82,7 +85,7 @@ function hazard=climada_ts_hazard_set(hazard,hazard_set_file,elevation_data,chec
 % david.bresch@gmail.com, 20160529, renamed to climada_ts_hazard_set and tc_surge_hazard_create deleted
 % david.bresch@gmail.com, 20161009, strcmpi used
 % david.bresch@gmail.com, 20170523, > in save fprintf to identify latest version
-% david.bresch@gmail.com, 20170806, Bathymetry_file stored in global data dir, not within module
+% david.bresch@gmail.com, 20170806, ETOPO_save_file stored in global data dir, not within module
 % david.bresch@gmail.com, 20171103, using SRTM data introduced
 % eberenz@posteo.eu,      20171107, prevent out-of-bounds error for etopo_get(bathy_coords)
 % david.bresch@gmail.com, 20180101, for SRTM mapping, use a bit wider a distance
@@ -108,6 +111,10 @@ save_bathymetry_flag=0; % default=0, see elevation_data
 %
 % to avoid many spurious heights, we set surges smaller than to zero
 height_precision_m=0.05; % in m, up to 5 cm ignored
+%
+regrid_check_plot=0; % the check plot of the regridding of SRTM, see climada_regrid, very time consuming plot
+if check_plot<0,regrid_check_plot=1;check_plot=abs(check_plot);end
+
 
 if strcmpi(elevation_data,'SRTM')
     elevation_data=[];
@@ -115,6 +122,7 @@ if strcmpi(elevation_data,'SRTM')
 else
     use_SRTM=0; % use default (fast) ETOPO data (1.9km)
 end
+if ~isstruct(elevation_data),elevation_data=[];end % make empty
 
 % prompt for TC hazard event set if not given
 if isempty(hazard) % local GUI
@@ -152,12 +160,7 @@ end
 
 % complete path, if missing
 [fP,fN,fE]=fileparts(hazard_set_file);
-if isempty(fP),hazard_set_file=[climada_global.data_dir filesep 'hazards' filesep fN fE];end
-
-if ~isstruct(elevation_data)
-    save_bathymetry_flag=elevation_data;
-    elevation_data=[]; % make empty
-end
+if isempty(fP),hazard_set_file=[climada_global.hazards_dir filesep fN fE];end
 
 % 1) try to obtain the elevation in different ways
 % ------------------------------------------------
@@ -202,10 +205,10 @@ if ~isfield(hazard,'elevation_m')
         [~,fN]=fileparts(hazard_set_file);
         fN=strrep(fN,'_hist','');
         fN=strrep(fN,'_prob','');
-        SRTM_save_file=[climada_global.results_dir filesep fN '_SRTM.mat'];
+        SRTM_save_file=[climada_global.results_dir filesep strrep(['_SRTM_' fN],'__','_') '.mat'];
         
         if exist(SRTM_save_file,'file')
-            fprintf('loading %s (delete to re-create)\n',SRTM_save_file)
+            fprintf('< reading SRTM from %s (delete to re-create)\n',SRTM_save_file)
             load(SRTM_save_file)
             hazard.elevation_m=SRTM.elevation_m;
         else
@@ -229,14 +232,13 @@ if ~isfield(hazard,'elevation_m')
             
             arr_target.lon=hazard.lon;arr_target.lat=hazard.lat;
             dd=abs(diff(hazard.lon));arr_target.max_dist=min(dd(dd>0))/2*sqrt(2); % pass on max distance to consider
-            [arr_target,SRTM]=climada_regrid(SRTM,arr_target,check_plot-1,1); % only plot for SUPERCHECK
+            [arr_target,SRTM]=climada_regrid(SRTM,arr_target,regrid_check_plot,1); % only plot for SUPERCHECK
             SRTM.elevation_m=arr_target.val; % to copy in SRTM for save
             clear arr_target % free up memory
             SRTM.centroid_i=SRTM.target_i;SRTM=rmfield(SRTM,'target_i'); % better name for local use
             
-            %if isempty(strfind(SRTM_save_file,'NOSAVE')) && isempty(strfind(SRTM_save_file,'NO_SAVE'))
-            fprintf('SRTM temp saved as %s\n',SRTM_save_file);
             if isempty(strfind(SRTM_save_file,'NOSAVE')) && isempty(strfind(SRTM_save_file,'NO_SAVE'))
+                fprintf('> saving SRTM for speedup in subsequent calls as %s (you might later delete this file)\n',SRTM_save_file);
                 save(SRTM_save_file,'SRTM');
             else
                 %save(SRTM_save_file,'SRTM'); % in case you enable this, also enable next line:
@@ -246,11 +248,14 @@ if ~isfield(hazard,'elevation_m')
             hazard.elevation_m=SRTM.elevation_m;
             
             if check_plot
+                if check_plot>1
+                    mav=check_plot;
+                    fprintf('> using vertical scale 0..%im in ETOPO elevation plot\n',check_plot);
+                else
+                    mav=max(hazard.elevation_m);
+                end
                 marker_size=4;
-                mav=max(hazard.elevation_m);cmap=colormap;
-                %mav=10;[cmap,c_ax] = climada_colormap('TS'); % SPECIAL for Barisal
-                %save('__SRTM_TEST_plotdata','SRTM','hazard'); % SPECIAL for Barisal
-                figure('Name',[mfilename ' SRTM elevation']);
+                figure('Name',[mfilename ' SRTM elevation']);cmap=colormap;
                 plotclr(SRTM.lon,SRTM.lat,SRTM.val,'s',marker_size,1,0,mav,cmap,0,0);hold on;
                 plotclr(hazard.lon,hazard.lat,full(hazard.elevation_m),'s',marker_size,1,0,mav,cmap,0,0);
                 plot(hazard.lon,hazard.lat,'.r','MarkerSize',1);
@@ -277,18 +282,10 @@ if ~isfield(hazard,'elevation_m')
         % file the bathymetry gets stored in ( might not be used later on, but
         % saved to speed up re-creation of the TS hazard event set
         [~,fN]=fileparts(hazard_set_file);
-        Bathymetry_file=[climada_global.data_dir filesep fN '_bathy.mat'];
+        ETOPO_save_file=[climada_global.results_dir filesep strrep(['_ETOPO_' fN],'__','_') '.mat'];
         
-        if ~exist(Bathymetry_file,'file')
+        if ~exist(ETOPO_save_file,'file')
             
-            if ~exist('etopo_get','file')
-                % safety to inform the user in case he misses the ETOPO module
-                fprintf(['ERROR: etopo_get function not found, install climada elevation module first. Please download ' ...
-                    '<a href="https://github.com/davidnbresch/climada_module_elevation_models">'...
-                    'climada_module_elevation_models</a> from Github.\n'])
-                hazard=[];
-                return
-            end
             % bathy_coords =[-179   179  -60.9500   89] % 20171025, dnb, for TS global
             % 20171107 se, flexible solution for TS global (to prevent out-of-bounds error for etopo_get)
             if le(bathy_coords(1),-180), bathy_coords(1) = -179; end
@@ -301,14 +298,17 @@ if ~isfield(hazard,'elevation_m')
                 return
             end % error messages from etopo_get already
             
-            if save_bathymetry_flag
-                fprintf('saving bathymetry as %s (you might later delete this file)\n',Bathymetry_file);
-                save(Bathymetry_file,'BATI');
+            if (isempty(strfind(ETOPO_save_file,'NOSAVE')) && isempty(strfind(ETOPO_save_file,'NO_SAVE')))
+                fprintf('> saving ETOPO for speedup in subsequent calls as %s (you might later delete this file)\n',ETOPO_save_file);
+                save(ETOPO_save_file,'BATI');
+            else
+                %save(SRTM_save_file,'SRTM'); % in case you enable this, also enable next line:
+                %fprintf('!!! WARNING: delete %s ASAP (subsequent calls with otherwise use same SRTM area) !!!\n',SRTM_save_file);
             end
             
         else
-            fprintf('reading bathymetry from %s\n',Bathymetry_file);
-            load(Bathymetry_file); % contains BATI
+            fprintf('< reading ETOPO from %s\n',ETOPO_save_file);
+            load(ETOPO_save_file); % contains BATI
         end
         
         hazard.elevation_m=interp2(BATI.x,BATI.y,BATI.h,hazard.lon,hazard.lat);
@@ -316,11 +316,16 @@ if ~isfield(hazard,'elevation_m')
         hazard.onLand=hazard.lon.*0+1; % allocate
         hazard.onLand(hazard.elevation_m<0)=0; % water points
         hazard.elevation_m=max(hazard.elevation_m,0); % only points above sea level
-        
+                
         if check_plot
+            if check_plot>1
+                mav=check_plot;
+                fprintf('> using vertical scale 0..%im in ETOPO elevation plot\n',check_plot);
+            else
+                mav=max(hazard.elevation_m);
+            end
             marker_size=10;
-            mav=max(hazard.elevation_m);cmap=colormap;
-            figure('Name',[mfilename ' ETOPO elevation']);
+            figure('Name',[mfilename ' ETOPO elevation']);cmap=colormap;
             plotclr(BATI.x,BATI.y,BATI.h,'s',marker_size,1,0,mav,cmap,0,0);hold on;
             plotclr(hazard.lon,hazard.lat,full(hazard.elevation_m),'s',marker_size,1,0,mav,cmap,0,0);
             plot(hazard.lon,hazard.lat,'.r','MarkerSize',1);
@@ -381,7 +386,7 @@ if use_SRTM % SRTM
     
     if climada_global.parfor
         
-        fprintf('generating %i surge fields at %i low-laying/coastal (of total %i) centroids (parallel) ...',n_events,n_eff_centroids,n_centroids);
+        fprintf('generating %i surge fields at %i low-laying/coastal (of total %i) centroids (parfor) ...',n_events,n_eff_centroids,n_centroids);
         parfor centroid_ii=1:n_eff_centroids
             
             centroid_i=elev_point_pos(centroid_ii); % real i
@@ -582,7 +587,7 @@ if verbose,fprintf('TS: max(max(hazard.intensity))=%f\n',full(max(max(hazard.int
 
 if check_plot
     figure('Name',[mfilename ' max intens']);
-    climada_hazard_plot_nogrid(hazard,0); % show max surge over ALL events
+    climada_hazard_plot(hazard,0); % show max surge over ALL events
     
     figure('Name',[mfilename ' histogram']);
     nzp=hazard.fraction>0;
@@ -601,6 +606,8 @@ end % climada_ts_hazard_set
 % % =====================================
 % % wind speed to surge height conversion (CORE_CONVERSION)
 % % =====================================
+%
+% % see also http://www.nhc.noaa.gov/surge/slosh.php)
 %
 % % uncomment one level, then copy/paste below into MATLAB command window
 % % to run, i.e. to show the conversion fucntion as used above
