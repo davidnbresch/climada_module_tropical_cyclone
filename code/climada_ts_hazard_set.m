@@ -237,7 +237,7 @@ if ~isfield(hazard,'elevation_m')
             clear arr_target % free up memory
             SRTM.centroid_i=SRTM.target_i;SRTM=rmfield(SRTM,'target_i'); % better name for local use
             
-            if isempty(strfind(SRTM_save_file,'NOSAVE')) && isempty(strfind(SRTM_save_file,'NO_SAVE'))
+            if ~contains(SRTM_save_file,'NOSAVE') && ~contains(SRTM_save_file,'NO_SAVE')
                 fprintf('> saving SRTM for speedup in subsequent calls as %s (you might later delete this file)\n',SRTM_save_file);
                 save(SRTM_save_file,'SRTM');
             else
@@ -247,26 +247,26 @@ if ~isfield(hazard,'elevation_m')
             
             hazard.elevation_m=SRTM.elevation_m;
             
-            if check_plot
-                if check_plot>1
-                    mav=check_plot;
-                    fprintf('> using vertical scale 0..%im in ETOPO elevation plot\n',check_plot);
-                else
-                    mav=max(hazard.elevation_m);
-                end
-                marker_size=4;
-                figure('Name',[mfilename ' SRTM elevation']);cmap=colormap;
-                plotclr(SRTM.lon,SRTM.lat,SRTM.val,'s',marker_size,1,0,mav,cmap,0,0);hold on;
-                plotclr(hazard.lon,hazard.lat,full(hazard.elevation_m),'s',marker_size,1,0,mav,cmap,0,0);
-                plot(hazard.lon,hazard.lat,'.r','MarkerSize',1);
-                axis equal
-                xlim_tmp=xlim;ylim_tmp=ylim;
-                hold on;climada_plot_world_borders;
-                xlim(xlim_tmp);ylim(ylim_tmp);
-                title('SRTM elevation [m]')
-            end % check_plot
-            
         end % exist(SRTM_save_file,'file')
+        
+        if check_plot
+            if check_plot>1
+                mav=check_plot;
+                fprintf('> using vertical scale 0..%im in SRTM elevation plot\n',check_plot);
+            else
+                mav=max(hazard.elevation_m);
+            end
+            marker_size=4;
+            figure('Name',[mfilename ' SRTM elevation']);cmap=colormap;
+            plotclr(SRTM.lon,SRTM.lat,SRTM.val,'s',marker_size,1,0,mav,cmap,0,0);hold on;
+            plotclr(hazard.lon,hazard.lat,full(hazard.elevation_m),'s',marker_size,1,0,mav,cmap,0,0);
+            plot(hazard.lon,hazard.lat,'.r','MarkerSize',1);
+            axis equal
+            xlim_tmp=xlim;ylim_tmp=ylim;
+            hold on;climada_plot_world_borders;
+            xlim(xlim_tmp);ylim(ylim_tmp);
+            title('SRTM elevation [m]')
+        end % check_plot
         
         if isfield(hazard,'windfield_comment'),hazard=rmfield(hazard,'windfield_comment');end % remove
         hazard.surgefield_comment=sprintf('created based on TC using proxy surge height and SRTM %s (mapping/value took %f/%f sec.)',...
@@ -298,7 +298,7 @@ if ~isfield(hazard,'elevation_m')
                 return
             end % error messages from etopo_get already
             
-            if (isempty(strfind(ETOPO_save_file,'NOSAVE')) && isempty(strfind(ETOPO_save_file,'NO_SAVE')))
+            if (~contains(ETOPO_save_file,'NOSAVE') && ~contains(ETOPO_save_file,'NO_SAVE'))
                 fprintf('> saving ETOPO for speedup in subsequent calls as %s (you might later delete this file)\n',ETOPO_save_file);
                 save(ETOPO_save_file,'BATI');
             else
