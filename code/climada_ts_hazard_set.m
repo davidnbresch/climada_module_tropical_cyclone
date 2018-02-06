@@ -4,7 +4,7 @@ function [hazard,elevation_save_file]=climada_ts_hazard_set(hazard,hazard_set_fi
 %   climada_ts_hazard_set
 % PURPOSE:
 %   create a storm surge (TS) hazard event, based on an existing
-%   tropical cyclone (TC) hazard event set and the SLOSH model 
+%   tropical cyclone (TC) hazard event set and the SLOSH model
 %   (http://www.nhc.noaa.gov/surge/slosh.php)
 %
 %   Either using ETOPO1 (horizontal resolution 1.9km, fast, default) or SRTM
@@ -15,10 +15,13 @@ function [hazard,elevation_save_file]=climada_ts_hazard_set(hazard,hazard_set_fi
 %   1)  check wether we need to obtain bathymetry (calls etopo_get or
 %       climada_srtm_get from module
 %       https://github.com/davidnbresch/climada_module_elevation_models) or
-%       elevation is provided (see elevation_data)   
+%       elevation is provided (see elevation_data)
 %   2)  convert all TC footprints into TS footprints, using the SLOSH
-%       approach, see CORE_CONVERSION in code below for the conversion formula 
+%       approach, see CORE_CONVERSION in code below for the conversion formula
 %       (see also http://www.nhc.noaa.gov/surge/slosh.php)
+%   3) apply an inland decay correction of 0.3 m per 1 km distance from the
+%       coastline. Based on one single case study (2006). See note at the
+%       bottom of this file, too.
 %
 %   If you set climada_global.parfor=1, both the gridding of elevation as
 %   well as the event calculation will be parallelized for speedup.
@@ -33,10 +36,10 @@ function [hazard,elevation_save_file]=climada_ts_hazard_set(hazard,hazard_set_fi
 
 %   see tc_surge_TEST for a testbed for this code
 %
-%   ETOPO, see etopo_get and for the data 
-%       https://www.ngdc.noaa.gov/mgg/global/, doi:10.7289/V5C8276M 
-%   SRTM, see climada_srtm_get and for the data (usually fetched 
-%       automatically by climada_srtm_get) http://srtm.csi.cgiar.org 
+%   ETOPO, see etopo_get and for the data
+%       https://www.ngdc.noaa.gov/mgg/global/, doi:10.7289/V5C8276M
+%   SRTM, see climada_srtm_get and for the data (usually fetched
+%       automatically by climada_srtm_get) http://srtm.csi.cgiar.org
 % CALLING SEQUENCE:
 %   [hazard,elevation_save_file]=climada_ts_hazard_set(hazard,hazard_set_file,elevation_data,check_plot,verbose,elevation_save_file)
 % EXAMPLE:
@@ -68,13 +71,13 @@ function [hazard,elevation_save_file]=climada_ts_hazard_set(hazard,hazard_set_fi
 %       information is used.
 %       ='SRTM': use SRTM (horizontal resolution 90m) elevation data. Quite
 %       time consuming, but much more precise, e.g. setting
-%       hazard.fraction. This ignores any field hazard.elevation_m  
+%       hazard.fraction. This ignores any field hazard.elevation_m
 %       ='ETOPO': force the use of ETOPO1 (horizontal resolution 1.9km)
-%       elevation data. Ignore any field hazard.elevation_m 
+%       elevation data. Ignore any field hazard.elevation_m
 %   check_plot: =1, do show check plots, =0: no plots (default)
 %       if =X, use range 0..Xm in plot of elevation
 %       if negative, also show mapping for SRTM re-gridding (plot takes a
-%       lot of time, only set this for small TEST areas, please) 
+%       lot of time, only set this for small TEST areas, please)
 %   verbose: =1, verbose mode (default), =0: almost silent
 %       =2: SUPERTEST mode for Barisal, Bangladesh, hence run:
 %           entity=climada_nightlight_entity('Bangladesh','Barisal')
@@ -119,6 +122,7 @@ function [hazard,elevation_save_file]=climada_ts_hazard_set(hazard,hazard_set_fi
 % eberenz@posteo.eu,      20171107, prevent out-of-bounds error for etopo_get(bathy_coords)
 % david.bresch@gmail.com, 20180101, for SRTM mapping, use a bit wider a distance
 % david.bresch@gmail.com, 20180104, elevation_save_file and centroid_inland_max_dist_km
+% david.bresch@gmail.com, 20180206, height_decay_m_km added
 %-
 
 global climada_global
@@ -143,9 +147,17 @@ centroid_inland_max_dist_km=50; % inland distance (from any coast, in km) we sti
 % to avoid many spurious heights, we set surges smaller than to zero
 height_precision_m=0.05; % in m, up to 5 cm ignored
 %
+% inland decay of surge height (in meters) per kilometer (km) inland
+height_decay_m_km=0.3; % decay in m per km, see note at bottom
+%
 regrid_check_plot=0; % the check plot of the regridding of SRTM, see climada_regrid, very time consuming plot
 if check_plot<0,regrid_check_plot=1;check_plot=abs(check_plot);end
 
+%%%%%%%%%%%%%%%%%%%%%%%%
+if isfield(hazard,'distance2coast_km')
+    fprintf('WARNING: height_decay_m_km added, not fully tested yet (if you use distance2coast_km)\n')
+end
+%%%%%%%%%%%%%%%%%%%%%%%%
 
 if strcmpi(elevation_data,'SRTM')
     elevation_data=[];
@@ -216,12 +228,12 @@ end
 
 if ~isfield(hazard,'elevation_m')
     % if elevation_data is empty, use the elevation module
-
+    
     if ~isempty(elevation_data)
         % if elevation_data provided, we should not get here
         fprintf('Warning: elevation_data failed, using ETOPO\n');
     end
-        
+    
     if isempty(which('etopo_get')) % check for elevation module (both ETOPO1 and SRTM)
         fprintf(['WARNING: install climada elevation module first. Please download ' ...
             '<a href="https://github.com/davidnbresch/climada_module_elevation_models">'...
@@ -326,7 +338,7 @@ if ~isfield(hazard,'elevation_m')
         fN=strrep(strrep(fN,'_prob',''),'_hist','');
         if isempty(elevation_save_file),elevation_save_file=...
                 [climada_global.results_dir filesep strrep(['_ETOPO_' fN],'__','_') '.mat'];end
-                
+        
         if ~exist(elevation_save_file,'file')
             
             % bathy_coords =[-179   179  -60.9500   89] % 20171025, dnb, for TS global
@@ -359,7 +371,7 @@ if ~isfield(hazard,'elevation_m')
         hazard.onLand=hazard.lon.*0+1; % allocate
         hazard.onLand(hazard.elevation_m<0)=0; % water points
         hazard.elevation_m=max(hazard.elevation_m,0); % only points above sea level
-                
+        
         if check_plot
             if check_plot>1
                 mav=check_plot;
@@ -415,16 +427,18 @@ if use_SRTM % SRTM
     
     % using SRTM; precise, but slow
     
-    %if n_events<n_centroids % loop over events, since less events than centroids
     if isfield(hazard,'distance2coast_km')
-        if verbose,fprintf('restricting to centroids in elevation range ]0..10] m and closer than %i km to coast\n',...
-                centroid_inland_max_dist_km);end
+        if verbose,fprintf('restricting to centroids in elevation range ]0..10] m and closer than %i km to coast with a decay of %2.1fm/km inland\n',...
+                centroid_inland_max_dist_km,height_decay_m_km);end
         elev_point_pos=find(hazard.elevation_m>0 & hazard.elevation_m<10 & hazard.distance2coast_km<centroid_inland_max_dist_km);
+        inland_decay=max(hazard.distance2coast_km*height_decay_m_km,0);
+        inland_decay=inland_decay(elev_point_pos);
     else
         if verbose,fprintf('restricting to centroids in elevation range ]0..10] m\n');end % init, see terminate below
         elev_point_pos=find(hazard.elevation_m>0 & hazard.elevation_m<10);
+        inland_decay=elev_point_pos*0; % set to zero
     end
-
+    
     n_eff_centroids=length(elev_point_pos);
     
     hazard.fraction=spones(hazard.intensity); % init
@@ -469,7 +483,8 @@ if use_SRTM % SRTM
                     
                 end % event_ii
                 
-                intensity(:,centroid_ii)=intensity_tmp;
+                %intensity(:,centroid_ii)=intensity_tmp; % until 20180206
+                intensity(:,centroid_ii)=max(intensity_tmp-inland_decay(centroid_ii),0);
                 fraction( :,centroid_ii)=fraction_tmp;
                 
             end % sum(SRTM_val_tmp)>0
@@ -520,7 +535,8 @@ if use_SRTM % SRTM
                     
                 end % event_ii
                 
-                intensity(:,centroid_ii)=intensity_tmp;
+                %intensity(:,centroid_ii)=intensity_tmp; % until 20180206
+                intensity(:,centroid_ii)=max(intensity_tmp-inland_decay(centroid_ii),0);
                 fraction( :,centroid_ii)=fraction_tmp;
                 
                 if verbose,climada_progress2stdout(centroid_ii,n_eff_centroids,100,'centroids');end % update
@@ -541,6 +557,17 @@ if use_SRTM % SRTM
     
 else % ETOPO
     
+    if isfield(hazard,'distance2coast_km')
+        if verbose,fprintf('restricting to centroids in elevation range ]0..10] m and closer than %i km to coast with a decay of %2.1fm/km inland\n',...
+                centroid_inland_max_dist_km,height_decay_m_km);end
+        inland_decay=max(hazard.distance2coast_km*height_decay_m_km,0);
+        inland_decay(hazard.elevation_m>0 & hazard.distance2coast_km>centroid_inland_max_dist_km)=100; % large decay to set to zero
+    else
+        if verbose,fprintf('restricting to centroids in elevation range ]0..10] m\n');end % init, see terminate below
+        inland_decay=hazard.elevation_m*0; % set to zero
+        inland_decay(hazard.elevation_m>10)=100;  % large decay to set to zero
+    end
+    
     % using ETOPO, fast, but coarse
     if n_events<n_centroids % loop over events, since less events than centroids
         
@@ -549,7 +576,8 @@ else % ETOPO
         for event_i=1:n_events
             arr_i=find(hazard.intensity(event_i,:)); % to avoid de-sparsify all elements
             hazard.intensity(event_i,arr_i)=max(hazard.intensity(event_i,arr_i)...
-                -double(hazard.elevation_m(arr_i))-height_precision_m,0); % 20160516 double(.)
+                -double(hazard.elevation_m(arr_i))-height_precision_m-inland_decay(arr_i),0); % since 20180206
+            %   -double(hazard.elevation_m(arr_i))-height_precision_m,0); % 20160516 double(.) until 20180206
             
             if verbose,climada_progress2stdout(event_i,n_events,100,'events');end % update
             
@@ -562,7 +590,8 @@ else % ETOPO
         for centroid_i=1:n_centroids
             arr_i=find(hazard.intensity(:,centroid_i)); % to avoid de-sparsify all elements
             hazard.intensity(arr_i,centroid_i)=max(hazard.intensity(arr_i,centroid_i)...
-                -double(hazard.elevation_m(centroid_i))-height_precision_m,0); % 20160516 double(.)
+                -double(hazard.elevation_m(centroid_i))-height_precision_m-inland_decay(centroid_i),0); % since 20180206
+            %   -double(hazard.elevation_m(centroid_i))-height_precision_m,0); % 20160516 double(.) until 20180206
             
             if verbose,climada_progress2stdout(centroid_i,n_centroids,100,'centroids');end % update
             
@@ -570,6 +599,7 @@ else % ETOPO
         
     end % n_events<n_centroids
     if verbose,climada_progress2stdout(0);end % terminate
+    
 end % use_SRTM
 
 t_elapsed = etime(clock,t0);
@@ -580,7 +610,7 @@ hazard.creation_comment = msgstr;
 if isfield(hazard,'distance2coast_km') % remove all surge heights for points more than centroid_inland_max_dist_km inland
     hazard.intensity(:,hazard.distance2coast_km>centroid_inland_max_dist_km)=0; % clear inland
 end
-    
+
 if isfield(hazard,'filename'),hazard.filename_source=hazard.filename;end
 hazard.intensity=sparse(hazard.intensity); % sparsify (to be sure)
 if ~isfield(hazard,'fraction'),hazard.fraction=spones(hazard.intensity);end % fraction 100%
@@ -652,3 +682,39 @@ end % climada_ts_hazard_set
 % legend('conversion','SLOSH points')
 % xlabel('wind speed [m/s]')
 % ylabel('surge height [m]')
+
+% note on decay inland (to height_decay_m_km):
+% --------------------------------------------
+% Quotes:
+% “To determine the maximum distance inland a storm surge may travel we
+% note that historically the maximum height of a storm surge ever recorded
+% is believed to have been between 13 and 15 m 17. If we take the latter
+% value and assume a distance decay factor of 0.3 meters per kilometer
+% (Brecht et al., 2012) we estimate that the maximum threshold inland
+% distance is around 50 km 18. [...]
+%
+% 17) This was due to the Tropical Cyclone Mahina, a storm with sustained
+% winds in excess of 280 km/h and struck Bathurst Bay, Australia on March
+% 5, 1899.
+%
+% 18) For example, evidence for the storm surge for Hurricane Katrina was
+% found up to 20 km inland (Fritz et al., 2007) and close to 50 km for
+% Hurricane Ike (Forbes et al., 2011).”
+%
+% (Elliott et al. 2015)
+%
+% “As a surge moves inland, its height is diminished. The rate of decay depends largely on terrain and surface features, as well as factors specific to the storm generating the wave. In a case study on storm surges, Nicholls (2006) uses a distance decay factor of 0.2 to 0.4 m per kilometer that can be applied to wave heights in relatively flat coastal plains. For this analysis, we use an intermediate value (0.3 m per 1 km distance from the coastline) to estimate the wave height for each inland cell.”
+%
+% (Brecht et al. 2012)
+%
+% Und hier noch als Würdigung der holistischen Sicht:
+% “Controls on flooding Storm surge induced by tropical cyclones depends greatly on coastal geometries, including topography, local shoreline configurations and depth, and individual tropical cyclone characteristics — predominantly the wind speed, storm size and landfall location. The storm’s forward motion, angle of approach, and atmospheric pressure drop also influence surge generation. Tidal range and storm timing with the tide; the increase in water level, owing to the presence and local behaviour of shoaling waves; and river discharge and rainfall-driven runoff also contribute to flooding. However, in coastal regions that experience the most extreme tropical cyclone flooding, the greatest elevated water levels are largely due to wind-driven storm surge. Using a linearized momentum conservation argument, for which bottom friction and other external forces are neglected, it can be shown that wind surge is proportional to U2 * W/h, where U is wind speed, W is the distance over which the wind blows in the same direction, and h is the mean depth over the region where the wind blows.”
+%
+% (Woodruff et al. 2013, citing and summarising Resio & Westerink, 2008)
+%
+% References:
+% Brecht, H., Dasgupta, S., Laplante, B., Murray, S., Wheeler, D., 2012. Seal-level rise and storm surges: high stakes for a small number of developing countries. The Journal of Environment and Development 21, 120–138.
+% Elliott et al., 2015. The local impact of typhoons on economic activity in China: A view from outer space. Journal of Urban Economics 88, 50-66.
+% Nicholls, R. J., 2006. Storm surges in coastal areas. Natural disaster hot spots case studies. Washington, DC: World Bank. (Book?)
+% Resio, D. T. & Westerink, J. J, 2008. Modeling the physics of storm surges. Phys. Today 61, 33.
+% Woodruff et al., 2013. Coastal flooding by tropical cyclones and sea-level rise. Nature. 44-53.
