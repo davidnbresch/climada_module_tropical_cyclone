@@ -42,9 +42,9 @@ function hazard = climada_hazard_climate_screw(hazard, hazard_set_file, referenc
 % Gilles Stassen, gillesstassen@hotmail.com, 20150421 based on original
 %           function climada_hazard_clim_scen_advanced by David N. Bresch & Lea Mueller
 % Lea Mueller, muellele@gmail.com, 20151021, do not change hazard if it corresponds already to the required year
-% Samuel Eberenz, samweli@posteo.de, 20171109, debugged for func2str returning string without leading '@'.
-% Samuel Eberenz, samweli@posteo.de, 20171113, enable more than one field to be used for criteria (multi-criteria)
-% Samuel Eberenz, samweli@posteo.de, 20171113, add optional literature reference and write hazard.scenario
+% Samuel Eberenz, eberenz@posteo.eu, 20171109, debugged for func2str returning string without leading '@'.
+% Samuel Eberenz, eberenz@posteo.eu, 20171113, enable more than one field to be used for criteria (multi-criteria)
+% Samuel Eberenz, eberenz@posteo.eu, 20171113, add optional literature reference and write hazard.scenario
 %-
 
 global climada_global
