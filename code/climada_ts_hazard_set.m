@@ -1,4 +1,4 @@
-function [hazard,elevation_save_file]=climada_ts_hazard_set(hazard,hazard_set_file,elevation_data,check_plot,verbose,elevation_save_file)
+function [hazard,elevation_save_file]=climada_ts_hazard_set(hazard,hazard_set_file,elevation_data,check_plot,verbose,elevation_save_file,decay_buffer_km)
 % climada storm surge TS hazard event set
 % NAME:
 %   climada_ts_hazard_set
@@ -98,6 +98,12 @@ function [hazard,elevation_save_file]=climada_ts_hazard_set(hazard,hazard_set_fi
 %       Standard procedure is to first run climada_ts_hazard_set for a set
 %       of centroids once and then use the same elevation data in
 %       subsequent calls (with exactly the same centroids!)
+%   decay_buffer_km: define threshold distance to coast inland
+%       for the inland decay to kick in. Set around 0.1 to 1.0 times the
+%       horizontal resolution of the hazard set to avoid decay effects on 
+%       the centroids closest to the coast. decay_buffer_km is subtracted
+%       from distance2coast_km
+%       (default = 5)
 % OUTPUTS:
 %   hazard: a hazard event set, see core climada doc
 %       also written to a .mat file (see hazard_set_file)
@@ -123,6 +129,7 @@ function [hazard,elevation_save_file]=climada_ts_hazard_set(hazard,hazard_set_fi
 % david.bresch@gmail.com, 20180101, for SRTM mapping, use a bit wider a distance
 % david.bresch@gmail.com, 20180104, elevation_save_file and centroid_inland_max_dist_km
 % david.bresch@gmail.com, 20180206, height_decay_m_km added
+% eberenz@posteo.eu, 20180209, decay_buffer_km added
 %-
 
 global climada_global
@@ -135,6 +142,8 @@ if ~exist('elevation_data','var'),elevation_data=[];end
 if ~exist('check_plot','var'),check_plot=0;end
 if ~exist('verbose','var'),verbose=1;end
 if ~exist('elevation_save_file','var'),elevation_save_file='';end
+if ~exist('distance_no_decay_km','var'),decay_buffer_km=5;end
+
 
 % PARAMETERS
 %
@@ -421,6 +430,11 @@ t0         = clock;
 n_events   = size(hazard.intensity,1);
 n_centroids= size(hazard.intensity,2);
 
+% set distance2coast to 0 below threshold
+if decay_buffer_km && isfield(hazard,'distance2coast_km')
+    hazard.distance2coast_km = max(hazard.distance2coast_km - decay_buffer_km,0); % subtract decay buffer from distance
+end
+
 % as the innermost loop is vectorized, it shall be the one repeated most:
 
 if use_SRTM % SRTM
@@ -431,6 +445,7 @@ if use_SRTM % SRTM
         if verbose,fprintf('restricting to centroids in elevation range ]0..10] m and closer than %i km to coast with a decay of %2.1fm/km inland\n',...
                 centroid_inland_max_dist_km,height_decay_m_km);end
         elev_point_pos=find(hazard.elevation_m>0 & hazard.elevation_m<10 & hazard.distance2coast_km<centroid_inland_max_dist_km);
+        
         inland_decay=max(hazard.distance2coast_km*height_decay_m_km,0);
         inland_decay=inland_decay(elev_point_pos);
     else
@@ -686,34 +701,37 @@ end % climada_ts_hazard_set
 % note on decay inland (to height_decay_m_km):
 % --------------------------------------------
 % Quotes:
-% “To determine the maximum distance inland a storm surge may travel we
+% "To determine the maximum distance inland a storm surge may travel we
 % note that historically the maximum height of a storm surge ever recorded
-% is believed to have been between 13 and 15 m 17. If we take the latter
+% is believed to have been between 13 and 15 m [1]. If we take the latter
 % value and assume a distance decay factor of 0.3 meters per kilometer
 % (Brecht et al., 2012) we estimate that the maximum threshold inland
-% distance is around 50 km 18. [...]
+% distance is around 50 km [2]. [...]
 %
-% 17) This was due to the Tropical Cyclone Mahina, a storm with sustained
+% [1] This was due to the Tropical Cyclone Mahina, a storm with sustained
 % winds in excess of 280 km/h and struck Bathurst Bay, Australia on March
 % 5, 1899.
 %
-% 18) For example, evidence for the storm surge for Hurricane Katrina was
+% [2] For example, evidence for the storm surge for Hurricane Katrina was
 % found up to 20 km inland (Fritz et al., 2007) and close to 50 km for
-% Hurricane Ike (Forbes et al., 2011).”
-%
+% Hurricane Ike (Forbes et al., 2011)."
 % (Elliott et al. 2015)
 %
-% “As a surge moves inland, its height is diminished. The rate of decay depends largely on terrain and surface features, as well as factors specific to the storm generating the wave. In a case study on storm surges, Nicholls (2006) uses a distance decay factor of 0.2 to 0.4 m per kilometer that can be applied to wave heights in relatively flat coastal plains. For this analysis, we use an intermediate value (0.3 m per 1 km distance from the coastline) to estimate the wave height for each inland cell.”
-%
+% "As a surge moves inland, its height is diminished. The rate of decay 
+% depends largely on terrain and surface features, as well as factors specific 
+% to the storm generating the wave. In a case study on storm surges, 
+% Nicholls (2006) uses a distance decay factor of 0.2 to 0.4 m per kilometer 
+% that can be applied to wave heights in relatively flat coastal plains. 
+% For this analysis, we use an intermediate value (0.3 m per 1 km distance 
+% from the coastline) to estimate the wave height for each inland cell."
 % (Brecht et al. 2012)
 %
-% Und hier noch als Würdigung der holistischen Sicht:
-% “Controls on flooding Storm surge induced by tropical cyclones depends greatly on coastal geometries, including topography, local shoreline configurations and depth, and individual tropical cyclone characteristics — predominantly the wind speed, storm size and landfall location. The storm’s forward motion, angle of approach, and atmospheric pressure drop also influence surge generation. Tidal range and storm timing with the tide; the increase in water level, owing to the presence and local behaviour of shoaling waves; and river discharge and rainfall-driven runoff also contribute to flooding. However, in coastal regions that experience the most extreme tropical cyclone flooding, the greatest elevated water levels are largely due to wind-driven storm surge. Using a linearized momentum conservation argument, for which bottom friction and other external forces are neglected, it can be shown that wind surge is proportional to U2 * W/h, where U is wind speed, W is the distance over which the wind blows in the same direction, and h is the mean depth over the region where the wind blows.”
-%
+% Und hier noch als Wuerdigung der holistischen Sicht:
+% "Controls on flooding Storm surge induced by tropical cyclones depends greatly on coastal geometries, including topography, local shoreline configurations and depth, and individual tropical cyclone characteristics ??? predominantly the wind speed, storm size and landfall location. The storm???s forward motion, angle of approach, and atmospheric pressure drop also influence surge generation. Tidal range and storm timing with the tide; the increase in water level, owing to the presence and local behaviour of shoaling waves; and river discharge and rainfall-driven runoff also contribute to flooding. However, in coastal regions that experience the most extreme tropical cyclone flooding, the greatest elevated water levels are largely due to wind-driven storm surge. Using a linearized momentum conservation argument, for which bottom friction and other external forces are neglected, it can be shown that wind surge is proportional to U2 * W/h, where U is wind speed, W is the distance over which the wind blows in the same direction, and h is the mean depth over the region where the wind blows."
 % (Woodruff et al. 2013, citing and summarising Resio & Westerink, 2008)
 %
 % References:
-% Brecht, H., Dasgupta, S., Laplante, B., Murray, S., Wheeler, D., 2012. Seal-level rise and storm surges: high stakes for a small number of developing countries. The Journal of Environment and Development 21, 120–138.
+% Brecht, H., Dasgupta, S., Laplante, B., Murray, S., Wheeler, D., 2012. Seal-level rise and storm surges: high stakes for a small number of developing countries. The Journal of Environment and Development 21, 120???138.
 % Elliott et al., 2015. The local impact of typhoons on economic activity in China: A view from outer space. Journal of Urban Economics 88, 50-66.
 % Nicholls, R. J., 2006. Storm surges in coastal areas. Natural disaster hot spots case studies. Washington, DC: World Bank. (Book?)
 % Resio, D. T. & Westerink, J. J, 2008. Modeling the physics of storm surges. Phys. Today 61, 33.
