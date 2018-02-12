@@ -19,7 +19,7 @@ function [hazard,elevation_save_file]=climada_ts_hazard_set(hazard,hazard_set_fi
 %   2)  convert all TC footprints into TS footprints, using the SLOSH
 %       approach, see CORE_CONVERSION in code below for the conversion formula
 %       (see also http://www.nhc.noaa.gov/surge/slosh.php)
-%   3) apply an inland decay correction of 0.3 m per 1 km distance from the
+%   3) apply an inland decay correction of 0.2 m per 1 km distance from the
 %       coastline. Based on one single case study (2006). See note at the
 %       bottom of this file, too.
 %
@@ -102,8 +102,7 @@ function [hazard,elevation_save_file]=climada_ts_hazard_set(hazard,hazard_set_fi
 %       for the inland decay to kick in. Set around 0.1 to 1.0 times the
 %       horizontal resolution of the hazard set to avoid decay effects on 
 %       the centroids closest to the coast. decay_buffer_km is subtracted
-%       from distance2coast_km
-%       (default = 5)
+%       from distance2coast_km. default = 3 (km)
 % OUTPUTS:
 %   hazard: a hazard event set, see core climada doc
 %       also written to a .mat file (see hazard_set_file)
@@ -130,6 +129,7 @@ function [hazard,elevation_save_file]=climada_ts_hazard_set(hazard,hazard_set_fi
 % david.bresch@gmail.com, 20180104, elevation_save_file and centroid_inland_max_dist_km
 % david.bresch@gmail.com, 20180206, height_decay_m_km added
 % eberenz@posteo.eu, 20180209, decay_buffer_km added
+% eberenz@posteo.eu, 20180212, height_decay_m_km set to 0.2 m/km, decay_buffer_km default set to 3 km
 %-
 
 global climada_global
@@ -142,7 +142,7 @@ if ~exist('elevation_data','var'),elevation_data=[];end
 if ~exist('check_plot','var'),check_plot=0;end
 if ~exist('verbose','var'),verbose=1;end
 if ~exist('elevation_save_file','var'),elevation_save_file='';end
-if ~exist('distance_no_decay_km','var'),decay_buffer_km=5;end
+if ~exist('distance_no_decay_km','var'),decay_buffer_km=3;end
 
 
 % PARAMETERS
@@ -157,7 +157,7 @@ centroid_inland_max_dist_km=50; % inland distance (from any coast, in km) we sti
 height_precision_m=0.05; % in m, up to 5 cm ignored
 %
 % inland decay of surge height (in meters) per kilometer (km) inland
-height_decay_m_km=0.3; % decay in m per km, see note at bottom
+height_decay_m_km=0.2; % decay in m per km, see note at bottom. set to value between 0.2 and 0.4 
 %
 regrid_check_plot=0; % the check plot of the regridding of SRTM, see climada_regrid, very time consuming plot
 if check_plot<0,regrid_check_plot=1;check_plot=abs(check_plot);end
