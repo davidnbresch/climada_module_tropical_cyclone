@@ -33,7 +33,7 @@ function [hazard,elevation_save_file]=climada_ts_hazard_set(hazard,hazard_set_fi
 %   more than centroid_inland_max_dist_km inland (see PARAMETERS, usually
 %   50km) are set to zero. Set hazard.distance2coast_km negative for ocean
 %   points (climada convention) for them not to be excluded.
-
+%
 %   see tc_surge_TEST for a testbed for this code
 %
 %   ETOPO, see etopo_get and for the data
@@ -99,10 +99,10 @@ function [hazard,elevation_save_file]=climada_ts_hazard_set(hazard,hazard_set_fi
 %       of centroids once and then use the same elevation data in
 %       subsequent calls (with exactly the same centroids!)
 %   decay_buffer_km: define threshold distance to coast inland
-%       for the inland decay to kick in. Set around 0.1 to 1.0 times the
-%       horizontal resolution of the hazard set to avoid decay effects on 
-%       the centroids closest to the coast. decay_buffer_km is subtracted
-%       from distance2coast_km. default = 3 (km)
+%       for the inland decay to kick in. Set around 0.1 to 0.5 times the
+%       horizontal resolution of the hazard set to keep decay effects on 
+%       the centroids closest to the coast small. decay_buffer_km is subtracted
+%       from distance2coast_km. default = 3 (for a resolution of 10km)
 % OUTPUTS:
 %   hazard: a hazard event set, see core climada doc
 %       also written to a .mat file (see hazard_set_file)
@@ -142,8 +142,7 @@ if ~exist('elevation_data','var'),elevation_data=[];end
 if ~exist('check_plot','var'),check_plot=0;end
 if ~exist('verbose','var'),verbose=1;end
 if ~exist('elevation_save_file','var'),elevation_save_file='';end
-if ~exist('distance_no_decay_km','var'),decay_buffer_km=3;end
-
+if ~exist('distance_no_decay_km','var'),decay_buffer_km=3;end % spatially delays inland decay by X km 
 
 % PARAMETERS
 %
