@@ -5,12 +5,13 @@ function damagefunctions=climada_tc_damagefun_emanuel2011(damagefunctions,v_thre
 %   climada_inshape_new
 % PURPOSE:
 %   Create a TC damage function (mapping MDD on wind speed intensity) based
-%   on the cubic damage function shape proposed by: 
-%       Emanuel, Kerry. ?Global Warming Effects on U.S. Hurricane Damage.? 
-%       Weather, Climate, and Society 3, no. 4 (October 2011): 261?68. 
-%       https://doi.org/10.1175/WCAS-D-11-00007.1.
-%   The damage function is written to a new or provided damagefunction-struct,
-%   i.e. an entity.damagefunctions.
+%   on the cubic damage function shape proposed by Emanuel (2011).
+%   The default difference between v_threshold and v_half of 49m/s is based
+%   on the average of the two values of v_half used by Sealy & Strobl (2017).
+%
+%   The damage function is written to a new or an existing damagefunctions-struct,
+%   i.e. entity.damagefunctions.
+%
 %   PAA is set to 1 in this function.
 %
 % CALLING SEQUENCE:
@@ -37,6 +38,15 @@ function damagefunctions=climada_tc_damagefun_emanuel2011(damagefunctions,v_thre
 %   damagefunctions: struct with new damagefunction or appended damagefunctions.
 % MODIFICATION HISTORY:
 %  Samuel Eberenz, eberenz@posteo.eu, 20180628, initial.
+%
+% REFERENCES:
+%  Emanuel, Kerry. "Global Warming Effects on U.S. Hurricane Damage". 
+%       Weather, Climate, and Society 3, no. 4 (October 2011): 261-268.
+%       https://doi.org/10.1175/WCAS-D-11-00007.1.
+%  Sealy, Kathleen Sullivan, and Eric Strobl. "A Hurricane Loss Risk Assessment 
+%       of Coastal Properties in the Caribbean: Evidence from the Bahamas."
+%       Ocean & Coastal Management 149 (November 2017): 42?51.
+%       https://doi.org/10.1016/j.ocecoaman.2017.09.013.
 %
 %%
 
