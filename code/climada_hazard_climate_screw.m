@@ -48,6 +48,7 @@ function hazard = climada_hazard_climate_screw(hazard, hazard_set_file, referenc
 % Samuel Eberenz, eberenz@posteo.eu, 20171113, enable more than one field to be used for criteria (multi-criteria)
 % Samuel Eberenz, eberenz@posteo.eu, 20171113, add optional literature reference and write hazard.scenario
 % Samuel Eberenz, eberenz@posteo.eu, 20180705, add time_scale
+% Samuel Eberenz, eberenz@posteo.eu, 20180705, improve filename
 %-
 
 global climada_global
@@ -202,7 +203,11 @@ end % i = 1:length(screw)
 
 % change reference_year and filename
 hazard_cc.reference_year = reference_year;
-hazard_cc.filename       = [hazard.filename '_cc_' int2str(reference_year)];
+try
+    hazard_cc.filename = hazard_set_file;
+catch
+    hazard_cc.filename = [];
+end
 hazard_cc.comment        = [hazard.peril_ID ' climate change scenario ' int2str(reference_year)];
 hazard_cc.scenario       = [hazard.peril_ID ' climate change scenario ' int2str(hazard.reference_year) ' - ' int2str(reference_year) ' ' lit_reference];
 hazard                   = hazard_cc;
@@ -218,9 +223,10 @@ if isempty(hazard_set_file) % local GUI
     else
         hazard_set_file = fullfile(pathname,filename);
     end
+    hazard_cc.filename = hazard_set_file;
     save(hazard_set_file,'hazard')
     cprintf([113 198 113]/255, 'climate change scenario hazard set saved in %s\n', [hazard_set_file]);
-elseif ~strcmp(hazard_set_file,'NO_SAVE')
+elseif ~strcmp(hazard_set_file,'NO_SAVE') && ~strcmp(hazard_set_file,'NOSAVE')
     save(hazard_set_file,'hazard')
     cprintf([113 198 113]/255, 'climate change scenario hazard set saved in %s\n', [hazard_set_file]);
 end

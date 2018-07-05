@@ -85,9 +85,9 @@ if exist(rcp_file,'file')
         rcp_RF = interp1(rcp_years,rcp_RF,years);
         rcp_years=years;
         if make_plot
-            plot(years,rcp_RF,'ok')
+            plot(years,rcp_RF,'xk','MarkerSize',15,'LineWidth',3)
             hold off
-            legend(rcp_RF_import_headers.Scenario{1:i},'Requested Values','Location','NorthWest')
+            legend(rcp_RF_import_headers.Scenario{1:i},'Selected Forcing','Location','NorthWest')
         end
         
     end
