@@ -1,8 +1,8 @@
 function damagefunctions=climada_tc_damagefun_emanuel2011(damagefunctions,v_threshold,v_half,scale,DamageFunID,intensity_step_size,max_intensity,plot_df)
 % MODULE:
-%   tropical_cyclome
+%   tropical_cyclone
 % NAME:
-%   climada_inshape_new
+%   climada_tc_damagefun_emanuel2011
 % PURPOSE:
 %   Create a TC damage function (mapping MDD on wind speed intensity) based
 %   on the cubic damage function shape proposed by Emanuel (2011).

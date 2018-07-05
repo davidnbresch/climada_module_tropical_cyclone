@@ -1,4 +1,4 @@
-function hazard = climada_hazard_climate_screw(hazard, hazard_set_file, reference_year, screw)
+function hazard = climada_hazard_climate_screw(hazard, hazard_set_file, reference_year, screw, time_scale)
 % NAME:
 % climada_hazard_climate_screw
 % PURPOSE:
@@ -30,6 +30,8 @@ function hazard = climada_hazard_climate_screw(hazard, hazard_set_file, referenc
 %                   .bsxfun_op      operation of change (e.g. @times,@plus) (function handle)
 %                   .reference      [optional] reference to literature the screw is based on
 %               specifying N transformations to the original hazard set.
+%   time_scale:  scaling factor based on target/reference years of screw
+%   and target system. Derived from reference_year if not provided.
 % OUTPUTS:
 %   hazard:     new hazard for a future reference year, given a climate
 %               change scenario specified by screw.
@@ -45,6 +47,7 @@ function hazard = climada_hazard_climate_screw(hazard, hazard_set_file, referenc
 % Samuel Eberenz, eberenz@posteo.eu, 20171109, debugged for func2str returning string without leading '@'.
 % Samuel Eberenz, eberenz@posteo.eu, 20171113, enable more than one field to be used for criteria (multi-criteria)
 % Samuel Eberenz, eberenz@posteo.eu, 20171113, add optional literature reference and write hazard.scenario
+% Samuel Eberenz, eberenz@posteo.eu, 20180705, add time_scale
 %-
 
 global climada_global
@@ -55,6 +58,8 @@ if ~exist('hazard'          , 'var'), hazard           = []; end
 if ~exist('hazard_set_file' , 'var'), hazard_set_file  = []; end
 if ~exist('reference_year'  , 'var'), reference_year   = []; end
 if ~exist('screw'           , 'var'), screw            = []; end
+if ~exist('time_scale'  , 'var'), time_scale   = []; end
+
 
 try % check for literature reference in screw(1) in order to mention it in hazard.scenario
     lit_reference = ['[' screw(1).reference ']']; 
@@ -148,53 +153,51 @@ for i = 1:length(screw)
                 case 1
                     crit_ndx = crit_ndx_tmp;
                 otherwise
-                    crit_ndx = logical(crit_ndx .* crit_ndx_tmp); % cut criteria (= logical operation AND)     
+                    crit_ndx = logical(crit_ndx .* crit_ndx_tmp); % cut criteria (= logical operation AND)
             end
         end
         clear crit_ndx_tmp
     elseif ~iscell(screw(i).hazard_crit) && ~iscell(screw(i).criteria)  %% no multiple criteria
         crit_ndx = ismember(hazard.(screw(i).hazard_crit),screw(i).criteria);
     else
-        cprintf([1 0 0], sprintf('ERROR: screw.criteria and screw.hazard_crit must both or neither be cells')); 
+        cprintf([1 0 0], sprintf('ERROR: screw.criteria and screw.hazard_crit must both or neither be cells'));
         crit_ndx = 0;
     end
-
+    
     % linearly interpolate from screw.year to desired reference year
-    if (reference_year - hazard.reference_year)~= 0
-        time_frac = (reference_year-hazard.reference_year)/(screw(i).year-hazard.reference_year);
-        switch func2str(screw(i).bsxfun_op)
-            case 'times'
-                change = 1+ (screw(i).change-1) * time_frac;
-            case '@times'
-                change = 1+ (screw(i).change-1) * time_frac;
-            case 'plus'
-                change = screw(i).change * time_frac;
-            case '@plus'
-                change = screw(i).change * time_frac;
-            otherwise 
-                change = screw(i).change;
-                warning('screw(%i).bsxfun_op not recognized.',i)
-        end % crew(i).bsxfun_op
-        fprintf('Apply change %2.4f \n', change)
-        
-        % determine to which index crit_ndx corresponds (particularly relevant
-        % for intensity field), and change by desired amount
-        [fld_size_x, fld_size_y] = size(hazard_cc.(screw(i).hazard_fld));
-        if length(crit_ndx) == fld_size_x
-            hazard_cc.(screw(i).hazard_fld)(crit_ndx,:) = bsxfun(screw(i).bsxfun_op, ...
-                hazard.(screw(i).hazard_fld)(crit_ndx,:),change);
-        elseif length(crit_ndx) == fld_size_y
-            hazard_cc.(screw(i).hazard_fld)(:,crit_ndx) = bsxfun(screw(i).bsxfun_op, ...
-                hazard.(screw(i).hazard_fld)(:,crit_ndx),change);
-        else
-            % something went wrong with indexing...
-            cprintf([1 0 0],'ERROR: something went wrong... \n')
-            return
-        end % length(crit_ndx) == fld_size_x
+    if isempty(time_scale),time_scale = (reference_year-hazard.reference_year)/(screw(i).year-hazard.reference_year);end
+    
+    
+    switch func2str(screw(i).bsxfun_op)
+        case 'times'
+            change = 1+ (screw(i).change-1) * time_scale;
+        case '@times'
+            change = 1+ (screw(i).change-1) * time_scale;
+        case 'plus'
+            change = screw(i).change * time_scale;
+        case '@plus'
+            change = screw(i).change * time_scale;
+        otherwise
+            change = screw(i).change;
+            warning('screw(%i).bsxfun_op not recognized.',i)
+    end % crew(i).bsxfun_op
+    fprintf('Apply change %2.4f \n', change)
+    
+    % determine to which index crit_ndx corresponds (particularly relevant
+    % for intensity field), and change by desired amount
+    [fld_size_x, fld_size_y] = size(hazard_cc.(screw(i).hazard_fld));
+    if length(crit_ndx) == fld_size_x
+        hazard_cc.(screw(i).hazard_fld)(crit_ndx,:) = bsxfun(screw(i).bsxfun_op, ...
+            hazard.(screw(i).hazard_fld)(crit_ndx,:),change);
+    elseif length(crit_ndx) == fld_size_y
+        hazard_cc.(screw(i).hazard_fld)(:,crit_ndx) = bsxfun(screw(i).bsxfun_op, ...
+            hazard.(screw(i).hazard_fld)(:,crit_ndx),change);
     else
-        fprintf('Hazard corresponds already to request reference year (%d)\n', reference_year)
-    end
-
+        % something went wrong with indexing...
+        cprintf([1 0 0],'ERROR: something went wrong... \n')
+        return
+    end % length(crit_ndx) == fld_size_x
+    
 end % i = 1:length(screw)
 
 % change reference_year and filename
