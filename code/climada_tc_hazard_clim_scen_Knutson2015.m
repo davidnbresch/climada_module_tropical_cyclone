@@ -159,13 +159,6 @@ if time_scale>1
     hazard_cc.warning = 'Radiative forcing of selected scenario is higher than forcing in RCP4.5 end of 21st century (reference scenario). Changes in intensity & frequency are scaled with a factor larger than 1.';
 end
 
-if save_output
-    save([climada_global.hazards_dir filesep output_filename],'hazard_cc')
-    cprintf([113 198 113]/255, 'climate change scenario hazard set saved in %s\n', [climada_global.hazards_dir filesep output_filename]);
-    if save4octave, climada_save_mat_for_octave(output_filename,'hazards',6,1,1);end
-end
-
-
 % %% TC --> TS: Applying climada_ts_hazard_set.m for global grid TC hazard
 % if TC_TS % not fully tested, not included in options yet
 %     
@@ -250,8 +243,7 @@ if make_plots
 end
 
 hazard = hazard_cc;
-if save_output
-    
+if save_output 
     save([climada_global.hazards_dir filesep output_filename],'hazard')
     cprintf([113 198 113]/255, 'climate change scenario hazard set saved in %s\n', [climada_global.hazards_dir filesep output_filename]);
     if save4octave, climada_save_mat_for_octave(output_filename,'hazards',6,1,1);end
