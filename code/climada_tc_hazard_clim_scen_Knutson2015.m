@@ -1,4 +1,4 @@
-function hazard_cc = climada_tc_hazard_clim_scen_Knutson2015(hazard,tc_tracks,target_rcp_scenario,target_year,make_plots,output_filename)
+function hazard = climada_tc_hazard_clim_scen_Knutson2015(hazard,tc_tracks,target_rcp_scenario,target_year,make_plots,output_filename)
 % MODULE:
 % tropical_cyclone
 % NAME:
@@ -248,6 +248,16 @@ if make_plots
 %     clear Index* INTENSITY DIFF_INT
     
 end
+
+hazard = hazard_cc;
+if save_output
+    
+    save([climada_global.hazards_dir filesep output_filename],'hazard')
+    cprintf([113 198 113]/255, 'climate change scenario hazard set saved in %s\n', [climada_global.hazards_dir filesep output_filename]);
+    if save4octave, climada_save_mat_for_octave(output_filename,'hazards',6,1,1);end
+end
+
+
 
 end
 
