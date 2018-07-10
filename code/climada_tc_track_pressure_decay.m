@@ -1,31 +1,37 @@
-function tc_track = climada_tc_track_wind_decay(tc_track, p_rel, check_plot)
+function tc_track = climada_tc_track_pressure_decay(tc_track, p_rel, check_plot)
 
-% Incorporate wind decay after landfall for probabilistic tracks, based on
-% historical tc tracks
 % NAME:
-%   climada_tc_track_wind_decay
+%   climada_tc_track_pressure_decay
 % PURPOSE:
-%   incorporate wind decay after landfall of probabilistic tracks. The
+%   Incorporate pressure decay after landfall for probabilistic tracks, based on
+%   historical tc tracks. The
 %   decay can be calculated based on historical tracks or can be loaded
 %   from a mat file (p_rel)
-%   within:  climada_tc_random_walk_position_windspeed
+%   for:  isimip_windfield_holland
 % CALLING SEQUENCE:
-%   tc_track = climada_tc_track_wind_decay(tc_track, p_rel, check_plot)
+%     [~,p_rel_v]  = climada_tc_track_wind_decay_calculate(tc_track,check_plots);
+%     tc_track_decay = climada_tc_track_wind_decay(tc_track_prob, p_rel_v, check_plots);
+%     [~,p_rel_p]  = climada_tc_track_pressure_decay_calculate(tc_track,check_plots);
+%     tc_track_decay = climada_tc_track_pressure_decay(tc_track_decay, p_rel_p, check_plots);
+%     hazard   = isimip_tc_hazard_set(tc_track_decay,hazard_file,centroids);
+%     hazard = climada_hazard_reset_yearset(hazard,1);
+%     save([climada_global.hazards_dir filesep 'hazard_file'],'hazard','-v7.3');
 % EXAMPLE:
-%   tc_track = climada_tc_track_wind_decay(tc_track)
+%   tc_track = climada_tc_track_pressure_decay(tc_track)
 % INPUTS:
 %   none, if tc_track empty prompted for
 % OPTIONAL INPUT PARAMETERS:
-%   p_rel: parameters for exponential decay, y = exp(B) * exp(x*A), where 
-%          A = p_rel(1,1), B = p_rel(1,2), can be newly calculated or can
+%   p_rel: parameters for exponential decay, 
+%          %   pressure decay = S-(S-1)*exp(-A*x), where A = p_rel(1,1), S=LastPressureOfTrack/PressureAtLandfall=p_rel(1,2)
+%          A = p_rel(1,1), S = p_rel(1,2), can be newly calculated or can
 %          be loaded from data within globalGDP modul
 %   check_plot: to create plot
 % OUTPUTS:
-%   same structure now MaxSustainedWind in tc track decays after landfall
+%   same structure now CentralPressure in tc track decays after landfall
 % RESTRICTIONS:
+%   changes CentralPressure only.
 % MODIFICATION HISTORY:
-% Lea Mueller, 20121203
-% David N. Bresch, david.bresch@gmail.com, 20150106, climada_tc_equal_timestep
+% Samuel Eberenz, eberenz@posteo.eu, 20180709, adapted from climada_tc_track_wibd_decay_calculate to change CentralPressure p instead of MaxSustainedWind v (not yet fully documented)
 %-
 
 % init global variables
@@ -84,13 +90,13 @@ end
 
 v_scale_kn   = [34 64 83 96 113 135 500];
 no_cat       = size(v_scale_kn,2);
-v_vs_lf_time = cell(1,no_cat);
+p_vs_lf_time = cell(1,no_cat);
 cmap         = jet(no_cat);
 
 %% calculate exponential decay of wind speed after landfall if not given
 if isempty(p_rel)
     fprintf('Calculate p rel (parameters for exponential wind decay) based on historical tracks...\n')
-    [unused p_rel] = climada_tc_track_wind_decay_calculate(tc_track([tc_track(:).orig_event_flag]), check_plot);
+    [~, p_rel] = climada_tc_track_pressure_decay_calculate(tc_track([tc_track(:).orig_event_flag]), check_plot);
 end
 
 if check_plot
@@ -99,15 +105,15 @@ if check_plot
     climada_figuresize(0.5,0.8);
     hold on
     xlim([-5 150])
-    ylim([0 1.1])
-    ylabel('Relative wind speed (on landfall = 1)')
+    ylim([0.9 1.3])
+    ylabel('Relative pressure (on landfall = 1)')
     timestep  = datenum(0,0,diff(tc_track(1).datenum(1:2)))*24;
     xlabelstr = sprintf('Time steps after landfall (h)');
     xlabel(xlabelstr)
     cmap   = jet(no_cat);
     for cat_i = 1:no_cat
-        if ~isempty(v_vs_lf_time{cat_i})
-            hg = plot( [0:size(v_vs_lf_time{cat_i},1)-1],...
+        if ~isempty(p_vs_lf_time{cat_i})
+            hg = plot( [0:size(p_vs_lf_time{cat_i},1)-1],...
                               v_vs_lf_time_relative{cat_i},'.','color',cmap(cat_i,:),'markersize',5);
             h(cat_i) = hg(1);              
         end
@@ -123,10 +129,10 @@ if check_plot
     end    
     legendstr = {'Tropical Depression','Tropical Storm','Hurrican Cat. 1','Hurrican Cat. 2','Hurrican Cat. 3','Hurrican Cat. 4','Hurrican Cat. 5'};
     for cat_i = 1:no_cat
-        legendstr{cat_i} = sprintf('%s, y = exp(%1.4f t)',legendstr{cat_i}, p_rel(cat_i,1));
+        legendstr{cat_i} = sprintf('%s,   y = %1.3f-%1.3f*exp(%1.4f x)',legendstr{cat_i},p_rel(cat_i,2),p_rel(cat_i,2)-1, -p_rel(cat_i,1));
     end
     legend(h,legendstr)
-    title('Relative wind speed decay in relation to time after landfall')
+    title('Relative pressure decay in relation to time after landfall')
 end %check_plot
 
 
@@ -144,10 +150,10 @@ if check_plot
     plot([0 0],[0 150],':k')
     hold on
     xlim([-5 150])
-    ylim([0 150])
-    ylabel('Wind speed (kn)')
+    ylim([900 1020])
+    ylabel('Central Pressure (hPa)')
     xlabel('Time after landfall (h)')
-    title('Probabilistic tracks only - before wind speed decay')
+    title('Probabilistic tracks only - before pressure decay')
     for t_i = gen_tracks %  7:no_gen:length(tc_track)
         land_index_ = find(diff(tc_track(t_i).onLand) == 1)+1;
         sea_index_  = find(diff(tc_track(t_i).onLand) ==-1)+1;
@@ -160,11 +166,13 @@ if check_plot
 
                 for lf_i = 1:length(onland_time)
                     v_landfall  = tc_track(t_i).MaxSustainedWind(land_index_(lf_i)-1);
+                    
                     scale_index = find(v_landfall < v_scale_kn);
                     if ~isempty(scale_index)
                         scale_index = scale_index(1);
                         a           = onland_time(lf_i);                   
-                        plot(0:a, tc_track(t_i).MaxSustainedWind(land_index_(lf_i)+[0:a]),'.','color',cmap(scale_index,:))
+                        plot(0:a, tc_track(t_i).CentralPressure(land_index_(lf_i)+[0:a]),'.','color',cmap(scale_index,:))
+                        %S_cell{scale_index}(1:a+1,end+1) = tc_track(t_i).CentralPressure(end)/p_landfall;
                     end
                 end %lf_i
             end
@@ -176,7 +184,7 @@ end % check_plot
     
 for t_i = gen_tracks
     % copy before changing wind speeds
-    tc_track(t_i).MaxSustainedWind_ori = tc_track_ori_1h(t_i).MaxSustainedWind;
+    tc_track(t_i).CentralPressure_ori = tc_track_ori_1h(t_i).CentralPressure;
     land_index_ = find(diff(tc_track(t_i).onLand) == 1)+1;
     sea_index_  = find(diff(tc_track(t_i).onLand) ==-1)+1;
     sea_index_  = [sea_index_ size(tc_track(t_i).onLand,2)];
@@ -187,23 +195,25 @@ for t_i = gen_tracks
             onland_time = sea_index_ - land_index_(1:length(sea_index_));
             for lf_i = 1:length(onland_time)
                 v_landfall  = tc_track(t_i).MaxSustainedWind(land_index_(lf_i)-1);
+                p_landfall  = tc_track(t_i).CentralPressure(land_index_(lf_i)-1);
                 scale_index = find(v_landfall < v_scale_kn);
                 if ~isempty(scale_index)
                     scale_index = scale_index(1);
                     a           = onland_time(lf_i);
                     if a>1
-                        decay    = exp(polyval(p_rel(scale_index,:),1:a));
-                        tc_track(t_i).MaxSustainedWind(land_index_(lf_i)-1+[1:a]) = ...
-                                                             v_landfall*decay;
-                        v_random = abs(randn(1)*5)+6; %mean value 10                       
-                        v_diff   = diff(tc_track(t_i).MaxSustainedWind(sea_index_(lf_i)+[-1:0]))...
-                                   - v_random ;                                 
-                        if sea_index_(lf_i) < length(tc_track(t_i).MaxSustainedWind)  
-                            tc_track(t_i).MaxSustainedWind(sea_index_(lf_i):land_index_(lf_i+1)) = ...
-                                            tc_track(t_i).MaxSustainedWind(sea_index_(lf_i):land_index_(lf_i+1))-v_diff;        
+                        %decay    = exp(polyval(p_rel(scale_index,:),1:a));
+                        decay  = p_rel(scale_index,2)-(p_rel(scale_index,2)-1).*exp(-p_rel(scale_index,1).*[1:a]);
+                        tc_track(t_i).CentralPressure(land_index_(lf_i)-1+[1:a]) = ...
+                                                             p_landfall*decay;
+                        p_random = 0.1*(abs(randn(1)*5)+6); %mean value 1                       
+                        p_diff   = diff(tc_track(t_i).CentralPressure(sea_index_(lf_i)+[-1:0]))...
+                                   - p_random ;                                 
+                        if sea_index_(lf_i) < length(tc_track(t_i).CentralPressure)  
+                            tc_track(t_i).CentralPressure(sea_index_(lf_i):land_index_(lf_i+1)) = ...
+                                            tc_track(t_i).CentralPressure(sea_index_(lf_i):land_index_(lf_i+1))-p_diff;        
                         else
-                            tc_track(t_i).MaxSustainedWind(sea_index_(lf_i)) = ...
-                                            tc_track(t_i).MaxSustainedWind(sea_index_(lf_i))-v_diff; 
+                            tc_track(t_i).CentralPressure(sea_index_(lf_i)) = ...
+                                            tc_track(t_i).CentralPressure(sea_index_(lf_i))-p_diff; 
                         end
                     end
                 end
@@ -213,7 +223,7 @@ for t_i = gen_tracks
             check_plot_ = 0;% check_plot;
             if check_plot_
                 fig = climada_figuresize(0.5,0.8);
-                ylabel('Wind speed (kn)')
+                ylabel('Pressure (hPa)')
                 xlabel('Time (h)')
                 hold on
                 for lf_i = 1:length(onland_time)
@@ -221,10 +231,10 @@ for t_i = gen_tracks
                     g(1) = fill([land_index_(lf_i) sea_index_(lf_i) sea_index_(lf_i) land_index_(lf_i)]-1,...
                                 [0 0 150 150],[255 250 205 ]/255,'edgecolor','none');
                 end
-                h(1) = plot(tc_track(t_i).MaxSustainedWind,'-');
+                h(1) = plot(tc_track(t_i).CentralPressure,'-');
                 hold on
-                h(2) = plot(tc_track(t_i).MaxSustainedWind_ori,':k');
-                legend([h g],'probabilistic track with wind decay','probabilistic track without wind decay','landfall',...
+                h(2) = plot(tc_track(t_i).CentralPressure_ori,':k');
+                legend([h g],'probabilistic track with pressure decay','probabilistic track without pressure decay','landfall',...
                              'location','southwest')
                 pause
                 close(fig)
@@ -233,10 +243,10 @@ for t_i = gen_tracks
     end
 end %t_i
 
-% no negativ numbers
+% no numbers above 1015
 for t_i = 1:length(tc_track)
-    if any(tc_track(t_i).MaxSustainedWind<0)
-        tc_track(t_i).MaxSustainedWind(tc_track(t_i).MaxSustainedWind<0) = 0;
+    if any(tc_track(t_i).CentralPressure>1015)
+        tc_track(t_i).CentralPressure(tc_track(t_i).CentralPressure>1015) = 1015;
     end
 end
 
@@ -247,10 +257,10 @@ if check_plot
     plot([0 0],[0 150],':k')
     hold on
     xlim([-5 150])
-    ylim([0 150])
-    ylabel('Wind speed (kn)')
+    ylim([900 1020])
+    ylabel('Pressure (hPa)')
     xlabel('Time after landfall (h)')
-    title('Probabilistic tracks only - after wind decay at landfall')
+    title('Probabilistic tracks only - after pressure decay at landfall')
     for t_i = gen_tracks %  7:no_gen:length(tc_track)
         land_index_ = find(diff(tc_track(t_i).onLand) == 1)+1;
         sea_index_  = find(diff(tc_track(t_i).onLand) ==-1)+1;
@@ -263,11 +273,12 @@ if check_plot
 
                 for lf_i = 1:length(onland_time)
                     v_landfall  = tc_track(t_i).MaxSustainedWind(land_index_(lf_i)-1);
+                    %p_landfall  = tc_track(t_i).CentralPressure(land_index_(lf_i)-1);
                     scale_index = find(v_landfall < v_scale_kn);
                     if ~isempty(scale_index)
                         scale_index = scale_index(1);
                         a           = onland_time(lf_i);                   
-                        plot(0:a, tc_track(t_i).MaxSustainedWind(land_index_(lf_i)+[0:a]),'.','color',cmap(scale_index,:))
+                        plot(0:a, tc_track(t_i).CentralPressure(land_index_(lf_i)+[0:a]),'.','color',cmap(scale_index,:))
                     end
                 end %lf_i
             end
@@ -281,7 +292,7 @@ check_plot_ = 0;%check_plot;
 if check_plot_
     fig = climada_figuresize(0.5,0.8);
     for t_i = 1:no_gen:length(tc_track)
-        ylabel('Wind speed (kn)')
+        ylabel('Central Pressure (hPa)')
         xlabel('Time (h)')
         hold on
         titlestr = sprintf('Historical track %d and %d probabilistic tracks',t_i,no_gen-1);
@@ -290,31 +301,31 @@ if check_plot_
             fprintf('t_ii %d \t',t_ii')
             onLand = logical(tc_track(t_ii).onLand);
             if any(~onLand)
-                plot(find(~onLand), tc_track(t_ii).MaxSustainedWind(~onLand),'b.','markersize',3)
+                plot(find(~onLand), tc_track(t_ii).CentralPressure(~onLand),'b.','markersize',3)
             end
             if any(onLand)
-                plot(find(onLand), tc_track(t_ii).MaxSustainedWind(onLand),'b.')
+                plot(find(onLand), tc_track(t_ii).CentralPressure(onLand),'b.')
             end
             lf = find(diff(onLand) == 1);
             fprintf('lf: ')
             fprintf(' %d, ',lf')
             fprintf('\n')
             if ~isempty(lf)
-                plot(lf, tc_track(t_i).MaxSustainedWind(lf),'bo','markersize',5)
+                plot(lf, tc_track(t_i).CentralPressure(lf),'bo','markersize',5)
             end
         end %t_ii
         onLand = logical(tc_track(t_i).onLand);
         if any( ~onLand)
-            g(1) = plot(find(~onLand), tc_track(t_i).MaxSustainedWind(~onLand),'k.','markersize',3);
+            g(1) = plot(find(~onLand), tc_track(t_i).CentralPressure(~onLand),'k.','markersize',3);
         end
         if any(onLand)
-            g(2) = plot(find(onLand), tc_track(t_i).MaxSustainedWind(onLand),'k.');
+            g(2) = plot(find(onLand), tc_track(t_i).CentralPressure(onLand),'k.');
         end
         lf   = find(diff(onLand) == 1);
         if ~isempty(lf)
-            g(3) = plot(lf, tc_track(t_i).MaxSustainedWind(lf),'or','markersize',7);
+            g(3) = plot(lf, tc_track(t_i).CentralPressure(lf),'or','markersize',7);
         end
-        ylim([0 max(tc_track(t_i).MaxSustainedWind)*1.2])
+        ylim([0 max(tc_track(t_i).CentralPressure)*1.2])
         xlim([0 size(onLand,2)*1.1])
         legend(g,'wind on sea', 'wind on land', 'landfall','location','southwest')
         pause

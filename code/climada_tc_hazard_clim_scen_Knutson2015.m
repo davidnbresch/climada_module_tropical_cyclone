@@ -154,7 +154,7 @@ routine = 'climada_tc_hazard_clim_scen_Knutson2015';
 hazard_cc.comment_clim=sprintf('Climate Change scenario %i, %s, adding basin-specific increments, see %s, %s',...
     target_year,path_str,routine,datestr(now));
 disp(hazard_cc.comment_clim);
-try, rmfield(hazard_cc,'scenario');end
+
 if time_scale>1
     hazard_cc.warning = 'Radiative forcing of selected scenario is higher than forcing in RCP4.5 end of 21st century (reference scenario). Changes in intensity & frequency are scaled with a factor larger than 1.';
 end
