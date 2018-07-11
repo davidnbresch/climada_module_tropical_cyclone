@@ -25,7 +25,8 @@ function [tc_track, p_rel] = climada_tc_track_pressure_decay_calculate(tc_track,
 % OUTPUTS:
 %   p_rel contains the parameters for exponential decay for tropical
 %   depression, tropical storm and hurricanes category 1 to 5
-%   pressure decay = S-(S-1)*exp(-A*x), where A = p_rel(1,1), S=LastPressureOfTrack/PressureAtLandfall=p_rel(1,2) 
+%   pressure decay = S-(S-1)*exp(-A*x), where A = p_rel(1,1), S=EnvironmentalPressure/PressureAtLandfall=p_rel(1,2)
+%   A = p_rel(1,1), S = p_rel(1,2)
 % RESTRICTIONS:
 %   changes CentralPressure only.
 % MODIFICATION HISTORY:
@@ -78,10 +79,11 @@ tc_track = climada_tc_equal_timestep(tc_track,1);
 %% find nodes on land and over sea
 tc_track = climada_tc_on_land(tc_track);
 
+max_h_lf = 72; % max time after landfall
 v_scale_kn   = [34 64 83 96 113 135 500];
 no_cat       = size(v_scale_kn,2);
 p_vs_lf_time = cell(1,no_cat);
-S_rel_to_env = 0; % if = 1, decay to environmental pressure, otherwise to last central pressure of storm track;
+S_rel_to_env = 1; % if = 1, decay to environmental pressure, otherwise to last central pressure of storm track;
 S_cell = cell(1,no_cat);
 
 
@@ -113,7 +115,7 @@ for t_i = 1:no_gen:length(tc_track)
                     a           = onland_time(lf_i);
                     p_vs_lf_time{scale_index}(1:a+1,end+1) = tc_track(t_i).CentralPressure(land_index_(lf_i)-1+[0:a])';
                     if S_rel_to_env
-                        S_cell{scale_index}(1:a+1,end+1) = tc_track(t_i).EnvironmentalPressure(end)/p_landfall;
+                        S_cell{scale_index}(1:a+1,end+1) = max(1010,tc_track(t_i).EnvironmentalPressure(end))/min(1009,p_landfall);
                     else
                         S_cell{scale_index}(1:a+1,end+1) = tc_track(t_i).CentralPressure(end)/p_landfall;
                     end

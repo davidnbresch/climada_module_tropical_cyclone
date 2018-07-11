@@ -267,7 +267,7 @@ if check_plot
                     if ~isempty(scale_index)
                         scale_index = scale_index(1);
                         a           = onland_time(lf_i);                   
-                        plot(0:a, tc_track(t_i).MaxSustainedWind(land_index_(lf_i)+[0:a]),'.','color',cmap(scale_index,:))
+                        plot(0:a, real(tc_track(t_i).MaxSustainedWind(land_index_(lf_i)+[0:a])),'.','color',cmap(scale_index,:))
                     end
                 end %lf_i
             end
