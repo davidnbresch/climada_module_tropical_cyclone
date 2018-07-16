@@ -34,6 +34,7 @@ function tc_track = climada_tc_track_pressure_dist_decay(tc_track, p_rel, check_
 % Samuel Eberenz, eberenz@posteo.eu, 20180713, adapted from climada_tc_track_wind_decay
 %               to change CentralPressure p instead of MaxSustainedWind v
 %               and relative to distance on land instead of time after landfall
+% Samuel Eberenz, eberenz@posteo.eu, 20180716,changed definition of S, correct for CentralPressure > EnvironmentalPressure
 %-
 
 % init global variables
@@ -123,6 +124,7 @@ if check_plot
     ylabel('Central Pressure (hPa)')
     xlabel('Distance over land (km)')
     title('Probabilistic tracks only - before pressure decay')
+  
     for t_i = gen_tracks %  7:no_gen:length(tc_track)
         land_index_ = find(diff(tc_track(t_i).onLand) == 1)+1;
         sea_index_  = find(diff(tc_track(t_i).onLand) ==-1)+1;
@@ -150,7 +152,7 @@ if check_plot
 end % check_plot
 
 
-    
+count_penv_lt_pcen = 0;    
 for t_i = gen_tracks
     % copy before changing wind speeds
     tc_track(t_i).CentralPressure_ori = tc_track_ori_1h(t_i).CentralPressure;
@@ -159,7 +161,6 @@ for t_i = gen_tracks
     sea_index_  = [sea_index_ size(tc_track(t_i).onLand,2)];
     if ~isempty(land_index_)
         if length(sea_index_)<= length(land_index_)   
-            
             % time over land
             onland_time = sea_index_ - land_index_(1:length(sea_index_));
             for lf_i = 1:length(onland_time)
@@ -172,7 +173,7 @@ for t_i = gen_tracks
                     a           = onland_time(lf_i);
                     if a>1
                         
-                        S = tc_track(t_i).EnvironmentalPressure(end)/min(tc_track(t_i).EnvironmentalPressure(end),p_landfall);
+                        S = max(tc_track(t_i).EnvironmentalPressure)/min(max(tc_track(t_i).EnvironmentalPressure),p_landfall);
                         %S = 1010/min(1010,p_landfall);
                         decay  = S-(S-1).*exp(-p_rel(scale_index,1).*onland_dist);
                         tc_track(t_i).CentralPressure(land_index_(lf_i)+[0:a]) = ...
@@ -219,15 +220,16 @@ for t_i = gen_tracks
             end %check_plot
         end %~isempty(land_index_)
     end
-end %t_i
-
-% no numbers above 1015
-for t_i = 1:length(tc_track)
-    if any(tc_track(t_i).CentralPressure>1015)
-        tc_track(t_i).CentralPressure(tc_track(t_i).CentralPressure>1015) = 1015;
+    if min(tc_track(t_i).EnvironmentalPressure-tc_track(t_i).CentralPressure)<0
+        i_negative = find(tc_track(t_i).EnvironmentalPressure-tc_track(t_i).CentralPressure<0);
+        tc_track(t_i).CentralPressure(i_negative)=tc_track(t_i).EnvironmentalPressure(i_negative);
+        count_penv_lt_pcen = count_penv_lt_pcen+1;
     end
+end %t_i
+if count_penv_lt_pcen>0
+    disp(['Central pressure was corrected for being larger than environmental pressure for ' num2str(count_penv_lt_pcen) ' tracks.']);
 end
-
+clear count_penv_lt_pcen i_neg* t_i onland_dist p_landfall v_landfall S decay 
 
 if check_plot
     climada_figuresize(0.5,0.8);
