@@ -35,6 +35,7 @@ function tc_track = climada_tc_track_pressure_dist_decay(tc_track, p_rel, check_
 %               to change CentralPressure p instead of MaxSustainedWind v
 %               and relative to distance on land instead of time after landfall
 % Samuel Eberenz, eberenz@posteo.eu, 20180716,changed definition of S, correct for CentralPressure > EnvironmentalPressure
+% Samuel Eberenz, eberenz@posteo.eu, 20180717,reset definition of S = tc_track(t_i).EnvironmentalPressure(end)/min(tc_track(t_i).EnvironmentalPressure(end),p_landfall);
 %-
 
 % init global variables
@@ -173,7 +174,7 @@ for t_i = gen_tracks
                     a           = onland_time(lf_i);
                     if a>1
                         
-                        S = max(tc_track(t_i).EnvironmentalPressure)/min(max(tc_track(t_i).EnvironmentalPressure),p_landfall);
+                        S = tc_track(t_i).EnvironmentalPressure(end)/min(tc_track(t_i).EnvironmentalPressure(end),p_landfall);
                         %S = 1010/min(1010,p_landfall);
                         decay  = S-(S-1).*exp(-p_rel(scale_index,1).*onland_dist);
                         tc_track(t_i).CentralPressure(land_index_(lf_i)+[0:a]) = ...
