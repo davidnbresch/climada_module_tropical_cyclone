@@ -30,6 +30,9 @@ function result=calibrate_TC_DF_emdat_framework_region(TCBasinID,value_mode,crop
 %         hazard_filename,number_free_parameters,years_considered);
 % end
 %
+% EXAMPLE2:
+% bsub -N -B -J "matlab_TC_cal003-11" -W 120:00 -R "rusage[mem=15000]" -oo logs/l_TC_cal_003-11.txt -e logs/e_TC_cal_003-11.txt 'matlab -nodisplay -nojvm -singleCompThread -r "calibrate_TC_DF_emdat_framework_region(11,2,0,300,0,'GLB_0360as_TC_hist_1000km.mat',2,1980:2015,1)"'
+%
 % INPUTS:
 %   several (to be explained)
 %
@@ -40,7 +43,7 @@ function result=calibrate_TC_DF_emdat_framework_region(TCBasinID,value_mode,crop
 % REQUIREMENTS:
 %    
 %      .../country_risk/data/NatID_RegID_basins_refined_201807.mat
-%      .../country_risk/data/em_data file per region
+%      .../country_risk/data/em_data file per region (e.g. em_data_TC_2005_CAR_1980-2015.mat)
 %      .../entities/entity_region_file per region (for calibration)
 %      required hazard file
 % 
@@ -62,7 +65,7 @@ if on_cluster && (~exist('climada_global','var') || isempty(climada_global))
         error('Location ~/climada not found. Please set location of climada folder on cluster correctly');
     end
 end
-clear hazard* entity* x*
+clear hazard entity* x*
 % https://ch.mathworks.com/help/gads/examples/constrained-minimization-using-pattern-search.html
 
 %%
@@ -309,9 +312,9 @@ if full_parameter_search
         save_file_name=[savedir filesep regions.mapping.TCBasinName{find(regions.mapping.TCBasinID==TCBasinID,1)}...
             '_' peril_ID '_decay_region_calibrate_litpop_gdp_' num2str(number_free_parameters) '-' num2str(value_mode) '-' num2str(resolution) '.mat'];
         
-        while (~force_overwrite_output && exist(save_file_name,'file')),save_file_name=strrep(save_file_name,'.mat',['_' datestr(today) '.mat']);end % avoid overwriting
+        while (~force_overwrite_output && exist(save_file_name,'file')),save_file_name=strrep(save_file_name,'.mat',['_' hazard_filename '_' datestr(today) '.mat']);end % avoid overwriting
         
-        
+        save(save_file_name,'result','fval','hazard_filename','TCBasinID');
         
     end
 end
