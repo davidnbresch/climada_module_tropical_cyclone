@@ -1,4 +1,4 @@
-function [hazard,elevation_save_file]=climada_ts_hazard_set(hazard,hazard_set_file,elevation_data,check_plot,verbose,elevation_save_file,decay_buffer_km)
+function [hazard,elevation_save_file]=climada_ts_hazard_set(hazard,hazard_set_file,elevation_data,check_plot,verbose,elevation_save_file,decay_buffer_km,SLR_increment_m)
 % climada storm surge TS hazard event set
 % NAME:
 %   climada_ts_hazard_set
@@ -46,6 +46,8 @@ function [hazard,elevation_save_file]=climada_ts_hazard_set(hazard,hazard_set_fi
 %   hazard_TC=climada_hazard_load('TCNA_today_small')
 %   hazard_TS_ETOP=climada_ts_hazard_set(hazard_TC,'TCNA_today_small_TS','ETOPO',10)
 %   hazard_TS_SRTM=climada_ts_hazard_set(hazard_TC,'TCNA_today_small_TS','SRTM', 10) % test SRTM (90m) elevation data
+%   % add sea level rise (SLR of 1.23 m) to the global hazard:
+%   climada_ts_hazard_set('GLB_0360as_TC_p_dist_decay','GLB_0360as_TS_p_dist_decay','ETOPO',0,0,'',[],1.23); % last parameter is SLR
 % INPUTS:
 %   hazard: an already existing tropical cyclone (TC) hazard event set (a
 %       TC hazard structure). If hazard.distance2coast_km exists, only
@@ -103,6 +105,8 @@ function [hazard,elevation_save_file]=climada_ts_hazard_set(hazard,hazard_set_fi
 %       horizontal resolution of the hazard set to keep decay effects on 
 %       the centroids closest to the coast small. decay_buffer_km is subtracted
 %       from distance2coast_km. default = 3 (for a resolution of 10km)
+%   SLR_increment_m: an increment to add sea level (SLR) rise, in meters.
+%       Default=0 (obviously)
 % OUTPUTS:
 %   hazard: a hazard event set, see core climada doc
 %       also written to a .mat file (see hazard_set_file)
@@ -130,6 +134,7 @@ function [hazard,elevation_save_file]=climada_ts_hazard_set(hazard,hazard_set_fi
 % david.bresch@gmail.com, 20180206, height_decay_m_km added
 % eberenz@posteo.eu, 20180209, decay_buffer_km added
 % eberenz@posteo.eu, 20180212, height_decay_m_km set to 0.2 m/km, decay_buffer_km default set to 3 km
+% david.bresch@gmail.com, 20180810, SLR_increment_m added
 %-
 
 global climada_global
@@ -142,7 +147,8 @@ if ~exist('elevation_data','var'),elevation_data=[];end
 if ~exist('check_plot','var'),check_plot=0;end
 if ~exist('verbose','var'),verbose=1;end
 if ~exist('elevation_save_file','var'),elevation_save_file='';end
-if ~exist('distance_no_decay_km','var'),decay_buffer_km=3;end % spatially delays inland decay by X km 
+if ~exist('decay_buffer_km','var'),decay_buffer_km=[];end % spatially delays inland decay by X km 
+if ~exist('SLR_increment_m','var'),SLR_increment_m=[];end % incremen to mimic SLR
 
 % PARAMETERS
 %
@@ -157,6 +163,9 @@ height_precision_m=0.05; % in m, up to 5 cm ignored
 %
 % inland decay of surge height (in meters) per kilometer (km) inland
 height_decay_m_km=0.2; % decay in m per km, see note at bottom. set to value between 0.2 and 0.4 
+%
+if isempty(decay_buffer_km),decay_buffer_km=3;end
+if isempty(SLR_increment_m),SLR_increment_m=0;end
 %
 regrid_check_plot=0; % the check plot of the regridding of SRTM, see climada_regrid, very time consuming plot
 if check_plot<0,regrid_check_plot=1;check_plot=abs(check_plot);end
@@ -179,18 +188,21 @@ else
 end
 if ~isstruct(elevation_data),elevation_data=[];end % make empty
 
-% prompt for TC hazard event set if not given
-if isempty(hazard) % local GUI
-    TC_hazard_set_file=[climada_global.data_dir filesep 'hazards' filesep '*.mat'];
-    [filename, pathname] = uigetfile(TC_hazard_set_file, 'Select a TC hazard event set:');
-    if isequal(filename,0) || isequal(pathname,0)
-        return; % cancel
-    else
-        TC_hazard_set_file=fullfile(pathname,filename);
-    end
-    load(TC_hazard_set_file);
-end
+hazard=climada_hazard_load(hazard);
+if isempty(hazard),return;end
 if isfield(hazard,'fraction'),hazard=rmfield(hazard,'fraction');end
+
+% % prompt for TC hazard event set if not given
+% if isempty(hazard) % local GUI
+%     TC_hazard_set_file=[climada_global.data_dir filesep 'hazards' filesep '*.mat'];
+%     [filename, pathname] = uigetfile(TC_hazard_set_file, 'Select a TC hazard event set:');
+%     if isequal(filename,0) || isequal(pathname,0)
+%         return; % cancel
+%     else
+%         TC_hazard_set_file=fullfile(pathname,filename);
+%     end
+%     load(TC_hazard_set_file);
+% end
 
 if verbose==2
     % SUPER TEST mode
@@ -422,7 +434,7 @@ hazard.comment=sprintf('TS hazard event set, generated %s',datestr(now));
 % map windspeed onto surge height (the CORE_CONVERSION, see at botton of file, too)
 % ===============================
 arr_nonzero=find(hazard.intensity); % to avoid de-sparsify all elements
-hazard.intensity(arr_nonzero)=0.1023*(max(hazard.intensity(arr_nonzero)-26.8224,0))+1.8288; % m/s converted to m surge height
+hazard.intensity(arr_nonzero)=0.1023*(max(hazard.intensity(arr_nonzero)-26.8224,0))+1.8288+SLR_increment_m; % m/s converted to m surge height, 20180810: +SLR_increment_m
 
 % subtract elevation above sea level from surge height
 t0         = clock;
@@ -430,7 +442,7 @@ n_events   = size(hazard.intensity,1);
 n_centroids= size(hazard.intensity,2);
 
 % set distance2coast to 0 below threshold
-if decay_buffer_km && isfield(hazard,'distance2coast_km')
+if decay_buffer_km>0 && isfield(hazard,'distance2coast_km')
     hazard.distance2coast_km = max(hazard.distance2coast_km - decay_buffer_km,0); % subtract decay buffer from distance
 end
 
