@@ -31,7 +31,7 @@ function result=calibrate_TC_DF_emdat_framework_region(TCBasinID,value_mode,crop
 % end
 %
 % EXAMPLE2:
-% bsub -N -B -J "matlab_TC_cal003-11" -W 120:00 -R "rusage[mem=15000]" -oo logs/l_TC_cal_003-11.txt -e logs/e_TC_cal_003-11.txt 'matlab -nodisplay -nojvm -singleCompThread -r "calibrate_TC_DF_emdat_framework_region(11,2,0,300,0,'GLB_0360as_TC_hist_1000km.mat',2,1980:2015,1)"'
+% bsub -N -B -J "matlab_TC_cal003-2" -W 120:00 -R "rusage[mem=20000]" -oo logs/l_TC_cal_003-2.txt -e logs/e_TC_cal_003-2.txt 'matlab -nodisplay -nojvm -singleCompThread -r "calibrate_TC_DF_emdat_framework_region(2,2,0,300,0,'GLB_0360as_TC_hist_1000km.mat',2,1980:2015,1)"'
 %
 % INPUTS:
 %   several (to be explained)
@@ -215,31 +215,33 @@ end
 % TCbasins = {'CAR' 'NAM' 'NWP' 'NIN' 'SIN' 'PIS' 'AUS'};
 % TCBasinIDs = [11    12    2     3     4     51    52];
 
-switch TCBasinID
-    case 11 % CAR / -
-        v_thres_0 = 25;
-    case 12 % NAM / USA
-        v_thres_0 = 29.8;
-    case 2 % NWP / JPN
-        v_thres_0 = 33.0;
-    case 3 % NIN / IND
-        v_thres_0 = 25.0;
-    case 4 % SIN / MDG
-        v_thres_0 = 25.0;
-    case 51 % PIS / -
-        v_thres_0 = 25.0;
-    case 52 % SWP / AUS
-        v_thres_0 = 25.0;
-    otherwise
-        v_thres_0 = 30;
-end
+% switch TCBasinID
+%     case 11 % CAR / -
+%         v_thres_0 = 25;
+%     case 12 % NAM / USA
+%         v_thres_0 = 29.8;
+%     case 2 % NWP / JPN
+%         v_thres_0 = 33.0;
+%     case 3 % NIN / IND
+%         v_thres_0 = 25.0;
+%     case 4 % SIN / MDG
+%         v_thres_0 = 25.0;
+%     case 51 % PIS / -
+%         v_thres_0 = 25.0;
+%     case 52 % SWP / AUS
+%         v_thres_0 = 25.0;
+%    otherwise
+        v_thres_0 = 30.7;
+%end
         
         
 switch number_free_parameters
     case 2
-        
-        x0 = [.5*(max(v_thres_0,30) + v_thres_0) .5]; % starting values of free parameters
-        bounds.lb = [max(v_thres_0,30)-5. 1e-9]; % never set lower bound of scale to 0! Otherwise calibration goes wrong.
+%         x0 = [.5*(max(v_thres_0,30) + v_thres_0) .5]; % starting values of free parameters
+%         bounds.lb = [max(v_thres_0,30)-5. 1e-9]; % never set lower bound of scale to 0! Otherwise calibration goes wrong.
+%         bounds.ub = [v_thres_0+5. 1.];        
+        x0 = [v_thres_0 .5]; % starting values of free parameters
+        bounds.lb = [max(v_thres_0-5,25.7) 1e-9]; % never set lower bound of scale to 0! Otherwise calibration goes wrong.
         bounds.ub = [v_thres_0+5. 1.];
     otherwise
         error('number_free_parameters other than 2 is not implemented yet');
