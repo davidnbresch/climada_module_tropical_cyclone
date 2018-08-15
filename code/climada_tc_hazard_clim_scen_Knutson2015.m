@@ -20,6 +20,9 @@ function hazard = climada_tc_hazard_clim_scen_Knutson2015(hazard,tc_tracks,targe
 %   tc_tracks = tc_track=climada_tc_track_load(tc_track_filename,0);
 %   hazard = climada_tc_hazard_clim_scen_Knutson2015(hazard,tc_tracks,target_rcp_scenario,target_year,make_plots);
 % EXAMPLES:
+%   hazard = climada_tc_hazard_clim_scen_Knutson2015([],[],45,2045,1,'AUTO'); % 2-degree, 2045
+%   hazard = climada_tc_hazard_clim_scen_Knutson2015([],[],85,2045,1,'AUTO'); % 4-degree, 2045
+%
 %   hazard = climada_tc_hazard_clim_scen_Knutson2015(hazard,tc_tracks,60,2050,1,'NO_SAVE');
 %   
 %   hazard = climada_tc_hazard_clim_scen_Knutson2015([],[],45,2080,0,'AUTO');
@@ -44,6 +47,7 @@ function hazard = climada_tc_hazard_clim_scen_Knutson2015(hazard,tc_tracks,targe
 %
 % MODIFICATION HISTORY:
 % Samuel Eberenz, eberenz@posteo.eu, 20180705, init
+% david.bresch@gmail.com, 20180815, PARAMETERS label introduced and parameters in code grouped, output filename streamlined
 %-
 %% initiate
 
@@ -57,37 +61,48 @@ if ~exist('target_year' , 'var'), target_year  = []; end
 if ~exist('make_plots'  , 'var'), make_plots   = []; end
 if ~exist('output_filename', 'var'), output_filename = []; end
 
+% PARAMETERS
+%
 if isempty(hazard)
-    hazard='GLB_0360as_TC'
+    hazard='GLB_0360as_TC';
+    fprintf('starting from default %s hazard set\n',hazard);
 end
 if isempty(tc_tracks), tc_tracks=[climada_global.data_dir filesep 'tc_tracks' filesep 'ibtracs' filesep 'ibtracs_prob.mat'];end
 if isempty(target_rcp_scenario), target_rcp_scenario=45; end
 if isempty(target_year), target_year=2050; end
 if isempty(make_plots), make_plots= 0; end
 if isempty(output_filename), output_filename = 'NO_SAVE'; end
-
+%
 if contains(output_filename,'NOSAVE') || contains(output_filename,'NO_SAVE')
     save_output = 0;
 elseif contains(output_filename,'AUTO')
     save_output = 1;
+    %output_filename = sprintf('TC_hazard_Knutson2015_rcp%i_%i',target_rcp_scenario,target_year);
+    output_filename = sprintf('TC_rcp%i_%i',target_rcp_scenario,target_year); % default generic name
     if ischar(hazard)
         hazard_filename_front = strsplit(hazard,'.mat'); % cell
-        output_filename = sprintf('%s_Knutson2015_rcp%i_%i',hazard_filename_front{1},target_rcp_scenario,target_year);
-    else
-        output_filename = sprintf('TC_hazard_Knutson2015_rcp%i_%i',target_rcp_scenario,target_year);
+        %output_filename = sprintf('%s_Knutson2015_rcp%i_%i',hazard_filename_front{1},target_rcp_scenario,target_year);
+        output_filename = sprintf('%s_rcp%i_%i',hazard_filename_front{1},target_rcp_scenario,target_year);
+    elseif isstruct(hazard)
+        if isfield(hazard,'filename')
+            [fP,fN,fE]=fileparts(hazard.filename);
+            output_filename = sprintf('%s%s_rcp%i_%i%s',fP,fN,hazard_filename_front{1},target_rcp_scenario,target_year,fE);
+        end
     end
 else
     save_output = 1;
 end
-
+%
 save4octave = 0;
+if climada_global.octave_mode,save4octave=1;end
+%
 % TC_TS = 0;
 % elevation_data = 0; 
 % centroid_filename=[climada_global.centroids_dir filesep 'GLB_NatID_grid_0360as_adv_1.mat'];
-
+%
 % chose reference (currently only Knutson 2015 implemented!)
 knutson2015=1;
-
+%
 basins = {'NA' 'EP' 'WP' 'NI' 'SI' 'SP'}; %% pick basins.... 
 %                         'GL' :: Global (default)
 %                         'EP' :: North East Pacific Ocean
@@ -98,6 +113,7 @@ basins = {'NA' 'EP' 'WP' 'NI' 'SI' 'SP'}; %% pick basins....
 %                         'SP' :: South Pacific Ocean
 %                         'WP' :: North West Pacific Ocean
 filename_extension = '_all_basins_';
+
 
 if knutson2015
     screw_ref = 'Knutson2015';
