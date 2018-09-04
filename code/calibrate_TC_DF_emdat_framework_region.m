@@ -292,7 +292,7 @@ if fminconSwitch
         
         while (~force_overwrite_output && exist(save_file_name,'file')),save_file_name=strrep(save_file_name,'.mat','_.mat');end % avoid overwriting
         
-        save(save_file_name,'TCBasinID','peril_ID','x0','results','years_considered','-v7.3');
+        save(save_file_name,'TCBasinID','peril_ID','x0','results','years_considered','cropped_assets','resolution','value_mode','-v7.3');
     end
 end
 
