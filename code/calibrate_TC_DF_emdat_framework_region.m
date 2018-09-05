@@ -1,4 +1,4 @@
-function result=calibrate_TC_DF_emdat_framework_region(TCBasinID,value_mode,cropped_assets,resolution,calibrate_countries,hazard_filename,number_free_parameters,years_considered,on_cluster)
+function result=calibrate_TC_DF_emdat_framework_region(TCBasinID,value_mode,cropped_assets,resolution,calibrate_countries,hazard_filename,number_free_parameters,years_considered,on_cluster,hand_over_entity_file)
 % NAME: calibrate_TC_DF_emdat_framework_region
 % MODULE: tropical_cyclone
 %
@@ -49,6 +49,7 @@ function result=calibrate_TC_DF_emdat_framework_region(TCBasinID,value_mode,crop
 % 
 % MODIFICATION HISTORY:
 % Samuel Eberenz, eberenz@posteo.eu, 20180718, init
+% Samuel Eberenz, eberenz@posteo.eu, 20180905, add option to hand over entity file name
 %-
 
 if ~exist('on_cluster','var'), on_cluster=[];end
@@ -80,6 +81,7 @@ if ~exist('calibrate_countries','var'),calibrate_countries=[];end
 if ~exist('hazard_filename','var'),hazard_filename=[];end
 if ~exist('number_free_parameters','var'),number_free_parameters=[];end
 if ~exist('years_considered','var'),years_considered=[];end
+if ~exist('hand_over_entity_file','var'),hand_over_entity_file=[];end
 
 
 % TCbasins = {'CAR' 'NAM' 'NWP' 'NIN' 'SIN' 'PIS' 'AUS'};
@@ -91,6 +93,7 @@ if isempty(resolution),resolution=300;end
 if isempty(calibrate_countries),calibrate_countries=0;end
 if isempty(hazard_filename),hazard_filename=['GLB_0360as_',peril_ID,'_hist'];end
 if isempty(number_free_parameters),number_free_parameters=2;end
+if isempty(hand_over_entity_file),hand_over_entity_file=0;end
 
 
 if ~exist('regions_from_xls','var'),regions_from_xls=0;end
@@ -98,6 +101,7 @@ if ~exist('reference_year','var'),reference_year=2005;end
 
 delta_shape_parameter = 49; % v_half - v_threshold (m/s)
 encode = 0;
+
 optimizerType='R2';
 remove_0_YDS_years = 1;
 %optimizerType='R';
@@ -255,6 +259,10 @@ norm.x0 = (x0-bounds.lb)./(bounds.ub-bounds.lb) .* (norm.ub-norm.lb) + norm.lb;
 
 %%
 % figure; climada_entity_plot(entity,3);
+if hand_over_entity_file
+    clear entity;
+    entity = entity_region_file;
+end
 
 % define anonymous function with input factor x (parameters of the damage
 % function):

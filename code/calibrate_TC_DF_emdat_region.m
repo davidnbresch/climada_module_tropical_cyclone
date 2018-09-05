@@ -36,7 +36,7 @@ function [ result ] = calibrate_TC_DF_emdat_region(x,delta_shape_parameter,entit
 %   
 % OPTIONAL INPUTS:
 %   delta_shape_parameter: difference im m/s between v_half and v_threshold
-%   entity: struct
+%   entity: struct or file name
 %   hazard: struct
 %   em_data: struct with fields year and damage
 %   norm: struct normalized bounds and starting value x0 
@@ -58,6 +58,7 @@ function [ result ] = calibrate_TC_DF_emdat_region(x,delta_shape_parameter,entit
 %
 % MODIFICATION HISTORY:
 % Samuel Eberenz, eberenz@posteo.eu, 20180718, init
+% Samuel Eberenz, eberenz@posteo.eu, 20180905, handle entity file name instead of struct
 %-
 
 
@@ -75,6 +76,12 @@ elseif (exist('norm','var')&& exist('bounds','var')) % compute x from normalized
 end
 % disp(x)
 if ~exist('type','var'),type='R2';end 
+if ~exist('entity','var'),error('Not enough input parameters');end 
+if isempty(entity),error('variable entity not specified. provide struct or path');end
+if ~isstruct(entity)
+    entity = climada_entity_load(entity);
+end
+    
 
 result = 0; %init
 
