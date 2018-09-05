@@ -1,4 +1,4 @@
-function result=calibrate_TC_DF_emdat_framework_region(TCBasinID,value_mode,cropped_assets,resolution,calibrate_countries,hazard_filename,number_free_parameters,years_considered,on_cluster,hand_over_entity_file)
+function result=calibrate_TC_DF_emdat_framework_region(TCBasinID,value_mode,cropped_assets,resolution,calibrate_countries,hazard_filename,number_free_parameters,years_considered,on_cluster,hand_over_entity_file,v_range)
 % NAME: calibrate_TC_DF_emdat_framework_region
 % MODULE: tropical_cyclone
 %
@@ -50,6 +50,7 @@ function result=calibrate_TC_DF_emdat_framework_region(TCBasinID,value_mode,crop
 % MODIFICATION HISTORY:
 % Samuel Eberenz, eberenz@posteo.eu, 20180718, init
 % Samuel Eberenz, eberenz@posteo.eu, 20180905, add option to hand over entity file name
+% Samuel Eberenz, eberenz@posteo.eu, 20180905, add option to set v_range (range of v_0 in m/s above 25.7)
 %-
 
 if ~exist('on_cluster','var'), on_cluster=[];end
@@ -82,7 +83,7 @@ if ~exist('hazard_filename','var'),hazard_filename=[];end
 if ~exist('number_free_parameters','var'),number_free_parameters=[];end
 if ~exist('years_considered','var'),years_considered=[];end
 if ~exist('hand_over_entity_file','var'),hand_over_entity_file=[];end
-
+if ~exist('v_range','var'),v_range=[];end
 
 % TCbasins = {'CAR' 'NAM' 'NWP' 'NIN' 'SIN' 'PIS' 'AUS'};
 % TCBasinIDs = [11    12    2     3     4     51    52];
@@ -94,7 +95,7 @@ if isempty(calibrate_countries),calibrate_countries=0;end
 if isempty(hazard_filename),hazard_filename=['GLB_0360as_',peril_ID,'_hist'];end
 if isempty(number_free_parameters),number_free_parameters=2;end
 if isempty(hand_over_entity_file),hand_over_entity_file=0;end
-
+if isempty(v_range),v_range=8;end
 
 if ~exist('regions_from_xls','var'),regions_from_xls=0;end
 if ~exist('reference_year','var'),reference_year=2005;end
@@ -235,7 +236,7 @@ end
 %     case 52 % SWP / AUS
 %         v_thres_0 = 25.0;
 %    otherwise
-        v_thres_0 = 30.7;
+        v_thres_0 = 25.7+v_range/2;
 %end
         
         
@@ -245,8 +246,8 @@ switch number_free_parameters
 %         bounds.lb = [max(v_thres_0,30)-5. 1e-9]; % never set lower bound of scale to 0! Otherwise calibration goes wrong.
 %         bounds.ub = [v_thres_0+5. 1.];        
         x0 = [v_thres_0 .5]; % starting values of free parameters
-        bounds.lb = [max(v_thres_0-5,25.7) 1e-9]; % never set lower bound of scale to 0! Otherwise calibration goes wrong.
-        bounds.ub = [v_thres_0+5. 1.];
+        bounds.lb = [max(v_thres_0-v_range/2,25.7) 1e-9]; % never set lower bound of scale to 0! Otherwise calibration goes wrong.
+        bounds.ub = [v_thres_0+v_range/2. 1.];
     otherwise
         error('number_free_parameters other than 2 is not implemented yet');
 end
