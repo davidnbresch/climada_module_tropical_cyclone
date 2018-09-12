@@ -48,6 +48,7 @@ function hazard = climada_tc_hazard_clim_scen_Knutson2015(hazard,tc_tracks,targe
 % MODIFICATION HISTORY:
 % Samuel Eberenz, eberenz@posteo.eu, 20180705, init
 % david.bresch@gmail.com, 20180815, PARAMETERS label introduced and parameters in code grouped, output filename streamlined
+% Samuel Eberenz, eberenz@posteo.eu, 20180705, debug ylim and xlim if change in f or intensity is 0
 %-
 %% initiate
 
@@ -225,11 +226,15 @@ if make_plots
     yyaxis left
     ylabel('Frequency')
     stem(diff_freq./hazard.frequency(1),'*','MarkerSize',10);
-    ylim([-1.1*max(abs(diff_freq./hazard.frequency(1))) 1.1*max(abs(diff_freq./hazard.frequency(1)))])
+    max_change = max(abs(diff_freq./hazard.frequency(1)));
+    if max_change == 0, max_change = 1;end
+    ylim([-1.1*max_change 1.1*max_change])
     yyaxis right
     ylabel('Intensity')
     stem(diff_int,'d','MarkerSize',10)
-    ylim([-1.1*max(abs(diff_int)) 1.1*max(abs(diff_int))]);
+    max_change = max(abs(diff_int));
+    if max_change == 0, max_change = 1;end
+    ylim([-1.1*max_change 1.1*max_change]);
     xticklabels(basins_all);
     title('Tropical Cyclones: Relative Delta per Basin');
     xlabel('Ocean Basin')
