@@ -1,4 +1,4 @@
-function [ result ] = calibrate_TC_DF_emdat_region(x,delta_shape_parameter,entity,hazard,em_data,norm,bounds,type)
+function [ result ] = calibrate_TC_DF_emdat_region(x,fixed_parameters,delta_shape_parameter,entity,hazard,em_data,norm,bounds,type)
 % NAME: calibrate_TC_DF_emdat_region
 % MODULE: tropical_cyclone
 %
@@ -59,6 +59,7 @@ function [ result ] = calibrate_TC_DF_emdat_region(x,delta_shape_parameter,entit
 % MODIFICATION HISTORY:
 % Samuel Eberenz, eberenz@posteo.eu, 20180718, init
 % Samuel Eberenz, eberenz@posteo.eu, 20180905, handle entity file name instead of struct
+% Samuel Eberenz, eberenz@posteo.eu, 20180914, add option of 1 free parameter
 %-
 
 
@@ -67,6 +68,7 @@ damage_at_centroid_temp = climada_global.damage_at_centroid;
 climada_global.damage_at_centroid = 1;
 
 if ~exist('x','var'),error('Not enough input parameters');end %
+if ~exist('fixed_parameters','var'),fixed_parameters=[];end %
 if ~exist('delta_shape_parameter','var'),delta_shape_parameter=49;end % m/s
 if xor(exist('bounds','var'), exist('norm','var')) % check if variables for normalizatiuon are given as input, if no, assume non-normalized input x
     error('Missing input: Function requires either both optional input variables norm and bounds or neither.')
@@ -82,15 +84,21 @@ if ~isstruct(entity)
     entity = climada_entity_load(entity);
 end
     
-
 result = 0; %init
 
-scale = x(end); % scale
 switch length(x)
+    case 1
+        if isempty(fixed_parameters)
+            error('x and fixed_parameters mismatch');
+        end
+        v_threshold = fixed_parameters;
+        scale = x;
+        v_half = v_threshold + delta_shape_parameter; % v_half
     case 2 % v_threshold fixed
         v_threshold = x(1); % v_threshold
-        scale = x(2);
+        scale = x(end);
         v_half = v_threshold + delta_shape_parameter; % v_half
+      
     otherwise
         error('length(x) has to be 2 currently');
 end

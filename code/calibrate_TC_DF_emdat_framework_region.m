@@ -51,6 +51,7 @@ function result=calibrate_TC_DF_emdat_framework_region(TCBasinID,value_mode,crop
 % Samuel Eberenz, eberenz@posteo.eu, 20180718, init
 % Samuel Eberenz, eberenz@posteo.eu, 20180905, add option to hand over entity file name
 % Samuel Eberenz, eberenz@posteo.eu, 20180905, add option to set v_range (range of v_0 in m/s above 25.7)
+% Samuel Eberenz, eberenz@posteo.eu, 20180914, add option of 1 free parameter
 %-
 
 if ~exist('on_cluster','var'), on_cluster=[];end
@@ -93,7 +94,7 @@ if isempty(cropped_assets),cropped_assets=0;end
 if isempty(resolution),resolution=300;end
 if isempty(calibrate_countries),calibrate_countries=0;end
 if isempty(hazard_filename),hazard_filename=['GLB_0360as_',peril_ID,'_hist'];end
-if isempty(number_free_parameters),number_free_parameters=2;end
+if isempty(number_free_parameters),number_free_parameters=1;end
 if isempty(hand_over_entity_file),hand_over_entity_file=0;end
 if isempty(v_range),v_range=8;end
 
@@ -220,28 +221,33 @@ end
 % TCbasins = {'CAR' 'NAM' 'NWP' 'NIN' 'SIN' 'PIS' 'AUS'};
 % TCBasinIDs = [11    12    2     3     4     51    52];
 
-% switch TCBasinID
-%     case 11 % CAR / -
-%         v_thres_0 = 25;
-%     case 12 % NAM / USA
-%         v_thres_0 = 29.8;
-%     case 2 % NWP / JPN
-%         v_thres_0 = 33.0;
-%     case 3 % NIN / IND
-%         v_thres_0 = 25.0;
-%     case 4 % SIN / MDG
-%         v_thres_0 = 25.0;
-%     case 51 % PIS / -
-%         v_thres_0 = 25.0;
-%     case 52 % SWP / AUS
-%         v_thres_0 = 25.0;
-%    otherwise
-        v_thres_0 = 25.7+v_range/2;
-%end
-        
-        
 switch number_free_parameters
+    case 1
+        v0_NA = 25.7;
+        switch TCBasinID
+            case 11 % CAR / NA
+                v_thres_0 = v0_NA;
+            case 12 % NAM / NA
+                v_thres_0 = v0_NA;
+            case 2 % NWP / WP
+                v_thres_0 = v0_NA + 2.6;
+            case 3 % NIN / NI
+                v_thres_0 = v0_NA - 0.9;
+            case 4 % SIN / SI
+                v_thres_0 = v0_NA + 1.2;
+            case 51 % PIS / SP
+                v_thres_0 = v0_NA + 1.8;
+            case 52 % AUS / SP
+                v_thres_0 = v0_NA + 1.8;
+            otherwise
+                v_thres_0 = v0_NA;
+                warning('unknown region?')
+        end
+        x0 = .5;
+        bounds.lb = 1e-9;
+        bounds.ub = 1.;
     case 2
+        v_thres_0 = 25.7+v_range/2;
 %         x0 = [.5*(max(v_thres_0,30) + v_thres_0) .5]; % starting values of free parameters
 %         bounds.lb = [max(v_thres_0,30)-5. 1e-9]; % never set lower bound of scale to 0! Otherwise calibration goes wrong.
 %         bounds.ub = [v_thres_0+5. 1.];        
@@ -249,7 +255,7 @@ switch number_free_parameters
         bounds.lb = [max(v_thres_0-v_range/2,25.7) 1e-9]; % never set lower bound of scale to 0! Otherwise calibration goes wrong.
         bounds.ub = [v_thres_0+v_range/2. 1.];
     otherwise
-        error('number_free_parameters other than 2 is not implemented yet');
+        error('number_free_parameters more than 2 is not implemented yet');
 end
 
 norm.lb = ones(size(bounds.lb));
@@ -257,9 +263,8 @@ norm.ub = norm.lb+1;
 
 norm.x0 = (x0-bounds.lb)./(bounds.ub-bounds.lb) .* (norm.ub-norm.lb) + norm.lb;
 
-
 %%
-% figure; climada_entity_plot(entity,3);
+
 if hand_over_entity_file
     clear entity;
     entity = entity_region_file;
@@ -267,7 +272,15 @@ end
 
 % define anonymous function with input factor x (parameters of the damage
 % function):
-fun = @(x)calibrate_TC_DF_emdat_region(x,delta_shape_parameter, entity, hazard, em_data_region, norm, bounds,optimizerType); % sets all inputvar for the function except for x, use normalized x.
+switch number_free_parameters
+    case 1
+        fun = @(x)calibrate_TC_DF_emdat_region(x,v_thres_0,delta_shape_parameter, entity, ...
+            hazard, em_data_region, norm, bounds,optimizerType); % sets all inputvar for the function except for x, use normalized x.        
+    case 2
+        fun = @(x)calibrate_TC_DF_emdat_region(x,[],delta_shape_parameter, entity, ...
+            hazard, em_data_region, norm, bounds,optimizerType); % sets all inputvar for the function except for x, use normalized x.
+end
+
 
 if fminconSwitch
 %     There are no linear constraints, so set those arguments to []:
