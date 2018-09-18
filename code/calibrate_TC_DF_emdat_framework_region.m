@@ -174,12 +174,13 @@ switch value_mode
         entity_region_file = ['TCBasin_' regions.mapping.TCBasinName{find(regions.mapping.TCBasinID==TCBasinID,1)}...
             '_TOW_LitPop_BM2016_' num2str(resolution) 'arcsec_ry' num2str(reference_year)];
 end
-if cropped_assets
+if cropped_assets || (~exist([climada_global.entities_dir filesep entity_region_file '_cal.mat'],'file') && ~exist([climada_global.entities_dir filesep entity_region_file '.mat'],'file'))
 	entity_region_file = [entity_region_file '_cropped'];
 end
 if exist([climada_global.entities_dir filesep entity_region_file '_cal.mat'],'file') % extra calibration entity?
     entity_region_file = [entity_region_file '_cal'];
 end
+
 
 % admin0_ISO3=country_list{i_country};
 % [admin0_name,admin0_ISO3] = climada_country_name(admin0_ISO3); % get full name
