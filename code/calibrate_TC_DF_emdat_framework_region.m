@@ -1,4 +1,4 @@
-function result=calibrate_TC_DF_emdat_framework_region(TCBasinID,value_mode,cropped_assets,resolution,calibrate_countries,hazard_filename,number_free_parameters,years_considered,on_cluster,hand_over_entity_file,v_range)
+function result=calibrate_TC_DF_emdat_framework_region(TCBasinID,value_mode,cropped_assets,resolution,calibrate_countries,hazard_filename,number_free_parameters,years_considered,on_cluster,hand_over_entity_file,v_range,n_subsets)
 % NAME: calibrate_TC_DF_emdat_framework_region
 % MODULE: tropical_cyclone
 %
@@ -85,6 +85,7 @@ if ~exist('number_free_parameters','var'),number_free_parameters=[];end
 if ~exist('years_considered','var'),years_considered=[];end
 if ~exist('hand_over_entity_file','var'),hand_over_entity_file=[];end
 if ~exist('v_range','var'),v_range=[];end
+if ~exist('n_subsets','var'),n_subsets=[];end
 
 % TCbasins = {'CAR' 'NAM' 'NWP' 'NIN' 'SIN' 'PIS' 'AUS'};
 % TCBasinIDs = [11    12    2     3     4     51    52];
@@ -97,6 +98,9 @@ if isempty(hazard_filename),hazard_filename=['GLB_0360as_',peril_ID,'_hist'];end
 if isempty(number_free_parameters),number_free_parameters=1;end
 if isempty(hand_over_entity_file),hand_over_entity_file=0;end
 if isempty(v_range),v_range=8;end
+if isempty(years_considered),years_considered=1980:2015;end
+if isempty(n_subsets) || n_subsets<1, n_subsets=1;end
+    
 
 if ~exist('regions_from_xls','var'),regions_from_xls=0;end
 if ~exist('reference_year','var'),reference_year=2005;end
@@ -152,6 +156,9 @@ else % set em-data damage 0 for all years not member of years_considered:
     end    
 end
 fprintf('A total of %i year(s) are considered for calibration (between %i and %i)\n',length(years_considered),min(years_considered),max(years_considered));
+%%
+
+
 %%
 switch value_mode
     case 1
@@ -270,77 +277,89 @@ if hand_over_entity_file
     entity = entity_region_file;
 end
 
-% define anonymous function with input factor x (parameters of the damage
-% function):
-switch number_free_parameters
-    case 1
-        fun = @(x)calibrate_TC_DF_emdat_region(x,v_thres_0,delta_shape_parameter, entity, ...
-            hazard, em_data_region, norm, bounds,optimizerType); % sets all inputvar for the function except for x, use normalized x.        
-    case 2
-        fun = @(x)calibrate_TC_DF_emdat_region(x,[],delta_shape_parameter, entity, ...
-            hazard, em_data_region, norm, bounds,optimizerType); % sets all inputvar for the function except for x, use normalized x.
-end
+%% calibrate for different sub sets of years (sorted):
+year_sets = emdat_find_year_subset(TCBasinID,years_considered,n_subsets,'TC',reference_year,0);
 
-
-if fminconSwitch
-%     There are no linear constraints, so set those arguments to []:
-%     [x,fval,exitflag,output]=fmincon(fun,norm.x0,[],[],[],[],norm.lb,norm.ub,[],fmincomOptions)
-%     Try an initial point in the middle of the region. Find the minimum of fun, subject to the bound constraints.
-    fmincomOptions = optimoptions('fmincon','MaxFunctionEvaluations',80,'Display','iter','StepTolerance',0.001);
-    results.x=[];
-    results.fval=[];
-    results.exitflag=[];
-    results.ME=[];
+for iys = 1:length(year_sets)
+	clear em_data_region_tmp;
+    em_data_tmp.damage=em_data_region.damage(ismember(em_data_region.year,year_sets{iys}));
+    em_data_tmp.damage_cal=em_data_region.damage_cal(ismember(em_data_region.year,year_sets{iys}));
+    em_data_tmp.year=em_data_region.year(ismember(em_data_region.year,year_sets{iys}));
     
-    try
+    % define anonymous function with input factor x (parameters of the damage
+    % function):
+    switch number_free_parameters
+        case 1
+            fun = @(x)calibrate_TC_DF_emdat_region(x,v_thres_0,delta_shape_parameter, entity, ...
+                hazard, em_data_tmp, norm, bounds,optimizerType); % sets all inputvar for the function except for x, use normalized x.
+        case 2
+            fun = @(x)calibrate_TC_DF_emdat_region(x,[],delta_shape_parameter, entity, ...
+                hazard, em_data_tmp, norm, bounds,optimizerType); % sets all inputvar for the function except for x, use normalized x.
+    end
+    
+    
+    if fminconSwitch
+        %     There are no linear constraints, so set those arguments to []:
+        %     [x,fval,exitflag,output]=fmincon(fun,norm.x0,[],[],[],[],norm.lb,norm.ub,[],fmincomOptions)
+        %     Try an initial point in the middle of the region. Find the minimum of fun, subject to the bound constraints.
+        fmincomOptions = optimoptions('fmincon','MaxFunctionEvaluations',80,'Display','iter','StepTolerance',0.001);
+        result.fmincon{iys}.x=[];
+        result.fmincon{iys}.fval=[];
+        result.fmincon{iys}.exitflag=[];
+        result.fmincon{iys}.ME=[];
+        
+        try
+            tic
+            [result.fmincon{iys}.x,result.fmincon{iys}.fval,result.fmincon{iys}.exitflag]=...
+                fmincon(fun,norm.x0,[],[],[],[],norm.lb,norm.ub,[],fmincomOptions);
+            toc
+            result.fmincon{iys}.x=(result.fmincon{iys}.x-norm.lb).*(bounds.ub-bounds.lb)./(norm.ub-norm.lb)+bounds.lb;
+            result.fmincon{iys}.fval
+        catch ME
+            warning(['fmincon failed. Check result.fmincon{iys}.ME for more info.']);
+            display(ME.identifier)
+            display(ME.message)
+            result.fmincon{iys}.ME = ME;
+            clear ME
+        end
+        
+        result.fmincon{iys}.resolution = resolution;
+%         if save_output
+%             save_file_name=[savedir filesep regions.mapping.TCBasinName{find(regions.mapping.TCBasinID==TCBasinID,1)}...
+%                 '_' peril_ID '_calibrate_region_fmincon_litpop_gdp_' num2str(number_free_parameters) '-' num2str(resolution) '.mat'];
+%             
+%             while (~force_overwrite_output && exist(save_file_name,'file')),save_file_name=strrep(save_file_name,'.mat','_.mat');end % avoid overwriting
+%             
+%             save(save_file_name,'TCBasinID','peril_ID','x0','results','years_considered','cropped_assets','resolution','value_mode','-v7.3');
+%         end
+    end
+    
+    %parpool('local_small')
+    if full_parameter_search
+        
+        options = optimoptions('patternsearch','UseParallel',false,...
+            'UseCompletePoll', true, 'UseVectorized', false,...
+            'MaxFunctionEvaluations',1200,'Display','iter',...
+            'Cache','on','InitialMeshSize',.25,...
+            'PollMethod','GPSPositiveBasis2N','StepTolerance',0.001);
         tic
-        [results.x,results.fval,results.exitflag]=...
-            fmincon(fun,norm.x0,[],[],[],[],norm.lb,norm.ub,[],fmincomOptions);
+        [x_result,fval] = patternsearch(fun,norm.x0,[],[],[],[],norm.lb,norm.ub,[],options);
         toc
-        results.x=(results.x-norm.lb).*(bounds.ub-bounds.lb)./(norm.ub-norm.lb)+bounds.lb;
-        results.fval
-    catch ME
-        warning(['fmincon failed. Check results.ME for more info.']);
-        display(ME.identifier)
-        display(ME.message)
-        results.ME = ME;
-        clear ME
-    end
+        result.x{iys}=(x_result-norm.lb).*(bounds.ub-bounds.lb)./(norm.ub-norm.lb)+bounds.lb
+        result.fval(iys)=fval
+        result.years{iys} = em_data_tmp.year;
 
-    results.resolution = resolution;
-    if save_output
-        save_file_name=[savedir filesep regions.mapping.TCBasinName{find(regions.mapping.TCBasinID==TCBasinID,1)}...
-            '_' peril_ID '_calibrate_region_fmincon_litpop_gdp_' num2str(number_free_parameters) '-' num2str(resolution) '.mat'];
-        
-        while (~force_overwrite_output && exist(save_file_name,'file')),save_file_name=strrep(save_file_name,'.mat','_.mat');end % avoid overwriting
-        
-        save(save_file_name,'TCBasinID','peril_ID','x0','results','years_considered','cropped_assets','resolution','value_mode','-v7.3');
     end
 end
-
-%parpool('local_small')
-if full_parameter_search
+if save_output && ~calibrate_countries
     
-    options = optimoptions('patternsearch','UseParallel',false,...
-    'UseCompletePoll', true, 'UseVectorized', false,...
-    'MaxFunctionEvaluations',1200,'Display','iter',...
-    'Cache','on','InitialMeshSize',.25,...
-    'PollMethod','GPSPositiveBasis2N','StepTolerance',0.001);
-    tic
-    [x_result,fval] = patternsearch(fun,norm.x0,[],[],[],[],norm.lb,norm.ub,[],options);
-    toc
-    result.region=(x_result-norm.lb).*(bounds.ub-bounds.lb)./(norm.ub-norm.lb)+bounds.lb
-    fval
-    if save_output && ~calibrate_countries
-        
-        save_file_name=[savedir filesep regions.mapping.TCBasinName{find(regions.mapping.TCBasinID==TCBasinID,1)}...
-            '_' peril_ID '_decay_region_calibrate_litpop_gdp_' num2str(number_free_parameters) '-' num2str(value_mode) '-' num2str(resolution) '.mat'];
-        
-        while (~force_overwrite_output && exist(save_file_name,'file')),save_file_name=strrep(save_file_name,'.mat',['_' hazard_filename '_' datestr(today) '.mat']);end % avoid overwriting
-        
-        save(save_file_name,'result','fval','hazard_filename','TCBasinID');
-        
-    end
+    save_file_name=[savedir filesep regions.mapping.TCBasinName{find(regions.mapping.TCBasinID==TCBasinID,1)}...
+        '_' peril_ID '_decay_region_calibrate_litpop_gdp_' num2str(number_free_parameters) '-' num2str(value_mode) '-' num2str(resolution) '.mat'];
+    
+    while (~force_overwrite_output && exist(save_file_name,'file')),save_file_name=strrep(save_file_name,'.mat',['_' hazard_filename '_' datestr(today) '.mat']);end % avoid overwriting
+    
+    save(save_file_name,'result','hazard_filename','TCBasinID');
+    
 end
 % clear entity hazard
 
