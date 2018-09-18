@@ -1,4 +1,4 @@
-function result=calibrate_TC_DF_emdat_framework_region(TCBasinID,value_mode,cropped_assets,resolution,calibrate_countries,hazard_filename,number_free_parameters,years_considered,on_cluster,hand_over_entity_file,v_range,n_subsets)
+function result=calibrate_TC_DF_emdat_framework_region(TCBasinID,value_mode,cropped_assets,resolution,calibrate_countries,hazard_filename,number_free_parameters,years_considered,on_cluster,hand_over_entity_file,v_range,n_subsets,v0_init)
 % NAME: calibrate_TC_DF_emdat_framework_region
 % MODULE: tropical_cyclone
 %
@@ -86,6 +86,8 @@ if ~exist('years_considered','var'),years_considered=[];end
 if ~exist('hand_over_entity_file','var'),hand_over_entity_file=[];end
 if ~exist('v_range','var'),v_range=[];end
 if ~exist('n_subsets','var'),n_subsets=[];end
+if ~exist('v0_init','var'),v0_init=[];end
+
 
 % TCbasins = {'CAR' 'NAM' 'NWP' 'NIN' 'SIN' 'PIS' 'AUS'};
 % TCBasinIDs = [11    12    2     3     4     51    52];
@@ -100,6 +102,7 @@ if isempty(hand_over_entity_file),hand_over_entity_file=0;end
 if isempty(v_range),v_range=8;end
 if isempty(years_considered),years_considered=1980:2015;end
 if isempty(n_subsets) || n_subsets<1, n_subsets=1;end
+if isempty(v0_init),v0_init=1;end
     
 
 if ~exist('regions_from_xls','var'),regions_from_xls=0;end
@@ -228,24 +231,34 @@ end
 % TCbasins = {'CAR' 'NAM' 'NWP' 'NIN' 'SIN' 'PIS' 'AUS'};
 % TCBasinIDs = [11    12    2     3     4     51    52];
 
+switch v0_init
+    case 1
+        v0_shift = [0 0 2.6 -.9 1.2 1.8 1.8]; % diff in median of mean intensity
+    case 2
+        v0_shift = [0 0 8.8 -4.4 3.8 5.5 5.5]; % diff in median of max intensity
+    otherwise
+        v0_shift = [0 0 0 0 0 0 0];
+end
+
+
 switch number_free_parameters
     case 1
         v0_NA = 25.7;
         switch TCBasinID
             case 11 % CAR / NA
-                v_thres_0 = v0_NA;
+                v_thres_0 = v0_NA + v0_shift(1);
             case 12 % NAM / NA
-                v_thres_0 = v0_NA;
+                v_thres_0 = v0_NA + v0_shift(2);
             case 2 % NWP / WP
-                v_thres_0 = v0_NA + 2.6;
+                v_thres_0 = v0_NA + v0_shift(3);
             case 3 % NIN / NI
-                v_thres_0 = v0_NA - 0.9;
+                v_thres_0 = v0_NA + v0_shift(4);
             case 4 % SIN / SI
-                v_thres_0 = v0_NA + 1.2;
+                v_thres_0 = v0_NA + v0_shift(5);
             case 51 % PIS / SP
-                v_thres_0 = v0_NA + 1.8;
+                v_thres_0 = v0_NA + v0_shift(6);
             case 52 % AUS / SP
-                v_thres_0 = v0_NA + 1.8;
+                v_thres_0 = v0_NA + v0_shift(7);
             otherwise
                 v_thres_0 = v0_NA;
                 warning('unknown region?')
@@ -348,6 +361,7 @@ for iys = 1:length(year_sets)
         result.x{iys}=(x_result-norm.lb).*(bounds.ub-bounds.lb)./(norm.ub-norm.lb)+bounds.lb
         result.fval(iys)=fval
         result.years{iys} = em_data_tmp.year;
+        result.v_thres_0 = v_thres_0;
 
     end
 end
