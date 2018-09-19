@@ -100,7 +100,9 @@ if isempty(resolution),resolution=300;end
 if isempty(calibrate_countries),calibrate_countries=0;end
 if isempty(hazard_filename),hazard_filename=['GLB_0360as_',peril_ID,'_hist'];end
 if isempty(number_free_parameters),number_free_parameters=1;end
-if isempty(optimizerType) || optimizerType==0,optimizerType='R2';end
+if isempty(optimizerType), optimizerType='R2';end
+if isnumeric(optimizerType) && optimizerType<2,optimizerType='R2';end
+if isnumeric(optimizerType) && optimizerType==2,optimizerType='logR2';end
 if isempty(v_range),v_range=8;end
 if isempty(years_considered),years_considered=1980:2015;end
 if isempty(n_subsets) || n_subsets<1, n_subsets=1;end
