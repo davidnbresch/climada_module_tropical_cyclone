@@ -1,4 +1,4 @@
-function result=calibrate_TC_DF_emdat_framework_region(TCBasinID,value_mode,cropped_assets,resolution,calibrate_countries,hazard_filename,number_free_parameters,years_considered,on_cluster,hand_over_entity_file,v_range,n_subsets,v0_init)
+function result=calibrate_TC_DF_emdat_framework_region(TCBasinID,value_mode,cropped_assets,resolution,calibrate_countries,hazard_filename,number_free_parameters,years_considered,on_cluster,optimizerType,v_range,n_subsets,v0_init)
 % NAME: calibrate_TC_DF_emdat_framework_region
 % MODULE: tropical_cyclone
 %
@@ -52,6 +52,8 @@ function result=calibrate_TC_DF_emdat_framework_region(TCBasinID,value_mode,crop
 % Samuel Eberenz, eberenz@posteo.eu, 20180905, add option to hand over entity file name
 % Samuel Eberenz, eberenz@posteo.eu, 20180905, add option to set v_range (range of v_0 in m/s above 25.7)
 % Samuel Eberenz, eberenz@posteo.eu, 20180914, add option of 1 free parameter
+% Samuel Eberenz, eberenz@posteo.eu, 20180919, more parameter options +
+% better file names for output + hand over optimizerType
 %-
 
 if ~exist('on_cluster','var'), on_cluster=[];end
@@ -83,7 +85,7 @@ if ~exist('calibrate_countries','var'),calibrate_countries=[];end
 if ~exist('hazard_filename','var'),hazard_filename=[];end
 if ~exist('number_free_parameters','var'),number_free_parameters=[];end
 if ~exist('years_considered','var'),years_considered=[];end
-if ~exist('hand_over_entity_file','var'),hand_over_entity_file=[];end
+if ~exist('optimizerType','var'),optimizerType=[];end
 if ~exist('v_range','var'),v_range=[];end
 if ~exist('n_subsets','var'),n_subsets=[];end
 if ~exist('v0_init','var'),v0_init=[];end
@@ -98,7 +100,7 @@ if isempty(resolution),resolution=300;end
 if isempty(calibrate_countries),calibrate_countries=0;end
 if isempty(hazard_filename),hazard_filename=['GLB_0360as_',peril_ID,'_hist'];end
 if isempty(number_free_parameters),number_free_parameters=1;end
-if isempty(hand_over_entity_file),hand_over_entity_file=0;end
+if isempty(optimizerType) || optimizerType==0,optimizerType='R2';end
 if isempty(v_range),v_range=8;end
 if isempty(years_considered),years_considered=1980:2015;end
 if isempty(n_subsets) || n_subsets<1, n_subsets=1;end
@@ -111,10 +113,11 @@ if ~exist('reference_year','var'),reference_year=2005;end
 delta_shape_parameter = 49; % v_half - v_threshold (m/s)
 encode = 0;
 
-optimizerType='R2';
+% optimizerType='R2';
 remove_0_YDS_years = 1;
 %optimizerType='R';
 %optimizerType='logR';
+%optimizerType='logR2';
 
 full_parameter_search = 1;
 fminconSwitch = 0;
@@ -233,6 +236,8 @@ end
 % TCBasinIDs = [11    12    2     3     4     51    52];
 
 switch v0_init
+    case 0
+        v0_shift = [0 0 0 0 0 0 0];
     case 1
         v0_shift = [0 0 2.6 -.9 1.2 1.8 1.8]; % diff in median of mean intensity
     case 2
@@ -283,13 +288,6 @@ norm.lb = ones(size(bounds.lb));
 norm.ub = norm.lb+1;
 
 norm.x0 = (x0-bounds.lb)./(bounds.ub-bounds.lb) .* (norm.ub-norm.lb) + norm.lb;
-
-%%
-
-if hand_over_entity_file
-    clear entity;
-    entity = entity_region_file;
-end
 
 %% calibrate for different sub sets of years (sorted):
 year_sets = emdat_find_year_subset(TCBasinID,years_considered,n_subsets,'TC',reference_year,0);
@@ -369,9 +367,9 @@ end
 if save_output && ~calibrate_countries
     
     save_file_name=[savedir filesep regions.mapping.TCBasinName{find(regions.mapping.TCBasinID==TCBasinID,1)}...
-        '_' peril_ID '_decay_region_calibrate_litpop_gdp_' num2str(number_free_parameters) '-' num2str(value_mode) '-' num2str(resolution) '.mat'];
+        '_' peril_ID '_decay_region_calibrate_litpop_gdp_' num2str(number_free_parameters) '-' num2str(value_mode) '-' num2str(resolution) '_' datestr(now,30)];
     
-    while (~force_overwrite_output && exist(save_file_name,'file')),save_file_name=strrep(save_file_name,'.mat',['_' hazard_filename '_' datestr(today) '.mat']);end % avoid overwriting
+     while (~force_overwrite_output && exist([save_file_name '.mat'],'file')),save_file_name=[save_file_name '_'];end % avoid overwriting
     
     save(save_file_name,'result','hazard_filename','TCBasinID');
     
@@ -414,10 +412,10 @@ if calibrate_countries
     %%
     if save_output
         save_file_name = [savedir filesep regions.mapping.TCBasinName{find(regions.mapping.TCBasinID==TCBasinID,1)}...
-            '_' peril_ID '_decay_region_countries_calibrate_litpop_gdp_' num2str(number_free_parameters) '-' num2str(value_mode) '-' num2str(resolution) '.mat'];
+            '_' peril_ID '_decay_region_countries_calibrate_litpop_gdp_' num2str(number_free_parameters) '-' num2str(value_mode) '-' num2str(resolution) '_' datestr(now,30)];
         
-        while (~force_overwrite_output && exist(save_file_name,'file')),save_file_name=strrep(save_file_name,'.mat','_.mat');end % avoid overwriting
-        
+        while (~force_overwrite_output && exist([save_file_name '.mat'],'file')),save_file_name=[save_file_name '_'];end % avoid overwriting
+
         save(save_file_name,'country_list','result','fval','resolution','years_considered','-v7.3');
         save_file_name
     end

@@ -1,4 +1,4 @@
-function [ result ] = calibrate_TC_DF_emdat_region(x,fixed_parameters,delta_shape_parameter,entity,hazard,em_data,norm,bounds,type)
+function result = calibrate_TC_DF_emdat_region(x,fixed_parameters,delta_shape_parameter,entity,hazard,em_data,norm,bounds,type)
 % NAME: calibrate_TC_DF_emdat_region
 % MODULE: tropical_cyclone
 %
@@ -60,6 +60,7 @@ function [ result ] = calibrate_TC_DF_emdat_region(x,fixed_parameters,delta_shap
 % Samuel Eberenz, eberenz@posteo.eu, 20180718, init
 % Samuel Eberenz, eberenz@posteo.eu, 20180905, handle entity file name instead of struct
 % Samuel Eberenz, eberenz@posteo.eu, 20180914, add option of 1 free parameter
+% Samuel Eberenz, eberenz@posteo.eu, 20180919, add optimizerType 'logR2'
 %-
 
 
@@ -142,13 +143,16 @@ switch type
         % exclude years with 0-damage-entries:
         year_i_vector = find(LIA);
         year_i_vector(em_data.damage(year_i_vector)==0)=[]; 
-      %  year_i_vector(YDS.damage(LOCB(year_i_vector))==0)=[];
-
         result = sum((em_data.damage(year_i_vector) - YDS.damage(LOCB(year_i_vector))).^2);
-%         for year_i = year_i_vector
-%             result = result + ...
-%                 (em_data.damage(year_i) - YDS.damage(LOCB(year_i)))^2;
-%         end
+
+    case 'logR2'
+        [~,YDS] = evalc('climada_EDS2YDS(EDS,hazard)');
+        [LIA,LOCB] = ismember(em_data.year,YDS.yyyy);
+        % exclude years with 0-damage-entries:
+        year_i_vector = find(LIA);
+        year_i_vector(em_data.damage(year_i_vector)==0)=[]; 
+        result = sum(log((em_data.damage(year_i_vector) - YDS.damage(LOCB(year_i_vector))).^2));
+        
     case 'R4'
         [~,YDS] = evalc('climada_EDS2YDS(EDS,hazard)');
         [LIA,LOCB] = ismember(em_data.year,YDS.yyyy);
@@ -178,7 +182,6 @@ switch type
 
         result = sum(log(abs(em_data.damage(year_i_vector) - YDS.damage(LOCB(year_i_vector)))));
 
-
     case 'RP'
         warning('Type RP not yet implemented, returning squared difference in AED instead');
         em_data_yyyy_allYears = em_data.year(1):em_data.year(end);
@@ -189,6 +192,8 @@ switch type
             end
         end
         result = (mean(em_data_damage_allYears)-EDS.ED)^2;
+    otherwise
+        error(['Unidentified optimizer type: ' typr]);
 end
 
 climada_global.damage_at_centroid = damage_at_centroid_temp;
