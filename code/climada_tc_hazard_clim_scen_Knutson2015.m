@@ -49,6 +49,7 @@ function hazard = climada_tc_hazard_clim_scen_Knutson2015(hazard,tc_tracks,targe
 % Samuel Eberenz, eberenz@posteo.eu, 20180705, init
 % david.bresch@gmail.com, 20180815, PARAMETERS label introduced and parameters in code grouped, output filename streamlined
 % Samuel Eberenz, eberenz@posteo.eu, 20180705, debug ylim and xlim if change in f or intensity is 0
+% david.bresch@gmail.com, 20190426, output_filename fixed
 %-
 %% initiate
 
@@ -87,7 +88,7 @@ elseif contains(output_filename,'AUTO')
     elseif isstruct(hazard)
         if isfield(hazard,'filename')
             [fP,fN,fE]=fileparts(hazard.filename);
-            output_filename = sprintf('%s%s_rcp%i_%i%s',fP,fN,hazard_filename_front{1},target_rcp_scenario,target_year,fE);
+            output_filename = sprintf('%s%s%s_rcp%i_%i%s',fP,filesep,fN,target_rcp_scenario,target_year,fE);
         end
     end
 else
@@ -134,7 +135,7 @@ if  ischar(hazard) || isstr(hazard)
     hazard_filename_front = strsplit(output_filename,'.mat'); % cell
     hazard=climada_hazard_load(hazard); 
 else
-    hazard_filename_front = ['TC_hazard_' datestr(today)];
+    hazard_filename_front = ['TC_hazard_' datestr(now)];
 end
 if ~isfield(hazard,'basin') || (length(hazard.basin) ~= length(hazard.event_ID))
     if ischar(tc_tracks) || isstr(tc_tracks)  
@@ -265,8 +266,8 @@ end
 
 hazard = hazard_cc;
 if save_output 
-    save([climada_global.hazards_dir filesep output_filename],'hazard')
-    cprintf([113 198 113]/255, 'climate change scenario hazard set saved in %s\n', [climada_global.hazards_dir filesep output_filename]);
+    save(output_filename,'hazard')
+    cprintf([113 198 113]/255, 'climate change scenario hazard set saved in %s\n',output_filename);
     if save4octave, climada_save_mat_for_octave(output_filename,'hazards',6,1,1);end
 end
 
