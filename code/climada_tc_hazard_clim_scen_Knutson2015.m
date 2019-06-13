@@ -31,7 +31,7 @@ function hazard = climada_tc_hazard_clim_scen_Knutson2015(hazard,tc_tracks,targe
 %   
 % OPTIONAL INPUT PARAMETERS:
 %   hazard:     hazard set today (TC) as file name or struct. default: 'GLB_0360as_TC'
-%   centroids:  cetroids of hazard set as file or struct (only required if
+%   tc_tracks:  TC track set as file or struct (only required if
 %       hazard.basins is missing) default: [climada_global.data_dir filesep 'tc_tracks' filesep 'ibtracs' filesep 'ibtracs_prob.mat']
 %   target_rcp_scenario: number of CMIP5/RCP scenario without decimal point, i.e. 26 for
 %       RCP2.6. Possible Inputs: 26, 45 (default), 60, 85.
