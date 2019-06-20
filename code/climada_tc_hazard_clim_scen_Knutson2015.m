@@ -4,8 +4,8 @@ function hazard = climada_tc_hazard_clim_scen_Knutson2015(hazard,tc_tracks,targe
 % NAME:
 % climada_tc_hazard_clim_scen_Knutson2015
 % PURPOSE:
-%   For different years and RCPs, compute the future TC hazard set based on: 
-%   'Knutson2015' :: Knutson et al., 2015. Global projections of intense tropical 
+%   For different years and RCPs, compute the future TC hazard set based on:
+%   'Knutson2015' :: Knutson et al., 2015. Global projections of intense tropical
 %                    cyclone activity for the late twenty-first century from dynamical
 %                    downscaling of CMIP5/RCP4.5 scenarios.
 %                    (Comparison 2081-2100 (i.e., late twenty-first
@@ -24,11 +24,11 @@ function hazard = climada_tc_hazard_clim_scen_Knutson2015(hazard,tc_tracks,targe
 %   hazard = climada_tc_hazard_clim_scen_Knutson2015([],[],85,2045,1,'AUTO'); % 4-degree, 2045
 %
 %   hazard = climada_tc_hazard_clim_scen_Knutson2015(hazard,tc_tracks,60,2050,1,'NO_SAVE');
-%   
+%
 %   hazard = climada_tc_hazard_clim_scen_Knutson2015([],[],45,2080,0,'AUTO');
 %
 %   hazard = climada_tc_hazard_clim_scen_Knutson2015('GLB_0360as_TC_hist',[climada_global.data_dir filesep 'tc_tracks' filesep 'ibtracs' filesep 'ibtracs.mat'],60,2030,1);
-%   
+%
 % OPTIONAL INPUT PARAMETERS:
 %   hazard:     hazard set today (TC) as file name or struct. default: 'GLB_0360as_TC'
 %   tc_tracks:  TC track set as file or struct (only required if
@@ -50,8 +50,10 @@ function hazard = climada_tc_hazard_clim_scen_Knutson2015(hazard,tc_tracks,targe
 % david.bresch@gmail.com, 20180815, PARAMETERS label introduced and parameters in code grouped, output filename streamlined
 % Samuel Eberenz, eberenz@posteo.eu, 20180705, debug ylim and xlim if change in f or intensity is 0
 % david.bresch@gmail.com, 20190426, output_filename fixed
+% david.bresch@gmail.com, 20190620, hazard.basin fixed, assuming probabilistic tracks to follow original ones one after the other
 %-
-%% initiate
+
+% initiate
 
 global climada_global;
 if ~climada_init_vars,return;end % init/import global variables
@@ -99,13 +101,13 @@ save4octave = 0;
 if climada_global.octave_mode,save4octave=1;end
 %
 % TC_TS = 0;
-% elevation_data = 0; 
+% elevation_data = 0;
 % centroid_filename=[climada_global.centroids_dir filesep 'GLB_NatID_grid_0360as_adv_1.mat'];
 %
 % chose reference (currently only Knutson 2015 implemented!)
 knutson2015=1;
 %
-basins = {'NA' 'EP' 'WP' 'NI' 'SI' 'SP'}; %% pick basins.... 
+basins = {'NA' 'EP' 'WP' 'NI' 'SI' 'SP'}; %% pick basins....
 %                         'GL' :: Global (default)
 %                         'EP' :: North East Pacific Ocean
 %                         'NA' :: North Atlantic Ocean
@@ -133,15 +135,25 @@ end
 % check whether hazard is filename or struct, get hazard and basins:
 if  ischar(hazard) || isstr(hazard)
     hazard_filename_front = strsplit(output_filename,'.mat'); % cell
-    hazard=climada_hazard_load(hazard); 
+    hazard=climada_hazard_load(hazard);
 else
     hazard_filename_front = ['TC_hazard_' datestr(now)];
 end
 if ~isfield(hazard,'basin') || (length(hazard.basin) ~= length(hazard.event_ID))
-    if ischar(tc_tracks) || isstr(tc_tracks)  
+    if ischar(tc_tracks) || isstr(tc_tracks)
         tc_tracks=climada_tc_track_load(tc_tracks,0);
     end
-    hazard.basin = extractfield(tc_tracks,'basin');
+    fprintf('NOTE: adding basin information from tracks ..');
+    hazard.basin=cell(size(hazard.event_ID)); % allocate
+    hazard.basin(hazard.orig_event_flag)=extractfield(tc_tracks,'basin'); % fill historic
+    for event_i=1:length(hazard.event_ID)
+        if ~isempty(hazard.basin{event_i})
+            hazard_basin=hazard.basin{event_i};
+        else
+            hazard.basin{event_i}=hazard_basin;
+        end
+    end % event_i
+    fprintf(' done\n');
     clear tc_tracks
 end
 % check consistency of hazard and tc_tracks
@@ -179,20 +191,20 @@ end
 
 % %% TC --> TS: Applying climada_ts_hazard_set.m for global grid TC hazard
 % if TC_TS % not fully tested, not included in options yet
-%     
+%
 %     close all;
 %     if TC_screw, TC_TS, hazard4TS_filename = output_filename;
 %     else, hazard4TS_filename = hazard_filename_front; end
-% 
+%
 %     hazard_TS_filename=replace(hazard4TS_filename,'TC','TS');
-% 
-%     hazard=climada_hazard_load(hazard4TS_filename);  
+%
+%     hazard=climada_hazard_load(hazard4TS_filename);
 %     if ~save_output
 %         hazard_TS_filename='NO_SAVE';
 %     end
 %     hazard_cc=climada_ts_hazard_set(hazard,hazard_TS_filename,elevation_data,make_plots);
-%     
-%         
+%
+%
 %     if save_output && save4octave, climada_save_mat_for_octave(hazard_TS_filename,'hazards',6,1,1);end
 % end
 
@@ -209,7 +221,7 @@ if make_plots
     hazard_delta.intensity = hazard_cc.intensity - hazard.intensity;
     hazard_delta.frequency = hazard_cc.frequency - hazard.frequency;
     randomi= randperm(size(hazard_delta.intensity,2),1000);
-    %%
+    %
     basins_all = unique(hazard_cc.basin);
     for i = 1:length(basins_all)
         IndexC = strfind(hazard_cc.basin, basins_all{i});
@@ -222,8 +234,8 @@ if make_plots
         diff_int(i) = nanmean(DIFF_INT(:));
         clear Index* INTENSITY DIFF_INT
     end
-
-    figure; 
+    
+    figure;
     yyaxis left
     ylabel('Frequency')
     stem(diff_freq./hazard.frequency(1),'*','MarkerSize',10);
@@ -247,31 +259,29 @@ if make_plots
     params.difference=1;
     figure;res = climada_hazard_plot(hazard_delta,0,[],params);set(gcf, 'Position', [100, 100, 1100, 600])
     title('Difference in maximum intensity between output and input hazard')
-%    figure;res = climada_hazard_plot(hazard_cc,0);set(gcf, 'Position', [300, 300, 1100, 600])
-
-%     
-%     i = 2;%1:length(basins_all)
-%     IndexC = strfind(hazard_cc.basin, basins_all{i});
-%     Index_only = find(not(cellfun('isempty', IndexC)));
-%     Index_exclude = find((cellfun('isempty', IndexC)));
-%     hazard_exclude = hazard_cc;
-%     hazard_only = hazard_cc;
-%     hazard_exclude.intensity(Index_only,:)=0;
-%     hazard_only.intensity(Index_exclude,:)=0;
-%     figure; climada_hazard_plot(hazard_only,0); title('only')
-%     figure; climada_hazard_plot(hazard_exclude,0); title('exclude')
-%     clear Index* INTENSITY DIFF_INT
+    %    figure;res = climada_hazard_plot(hazard_cc,0);set(gcf, 'Position', [300, 300, 1100, 600])
+    
+    %
+    %     i = 2;%1:length(basins_all)
+    %     IndexC = strfind(hazard_cc.basin, basins_all{i});
+    %     Index_only = find(not(cellfun('isempty', IndexC)));
+    %     Index_exclude = find((cellfun('isempty', IndexC)));
+    %     hazard_exclude = hazard_cc;
+    %     hazard_only = hazard_cc;
+    %     hazard_exclude.intensity(Index_only,:)=0;
+    %     hazard_only.intensity(Index_exclude,:)=0;
+    %     figure; climada_hazard_plot(hazard_only,0); title('only')
+    %     figure; climada_hazard_plot(hazard_exclude,0); title('exclude')
+    %     clear Index* INTENSITY DIFF_INT
     
 end
 
 hazard = hazard_cc;
-if save_output 
+if save_output
     save(output_filename,'hazard')
     cprintf([113 198 113]/255, 'climate change scenario hazard set saved in %s\n',output_filename);
     if save4octave, climada_save_mat_for_octave(output_filename,'hazards',6,1,1);end
 end
-
-
 
 end
 
