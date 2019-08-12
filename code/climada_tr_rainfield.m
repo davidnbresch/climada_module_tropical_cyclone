@@ -75,6 +75,15 @@ rainsum_threshold=.1; % threshold of rainsum stored in mm total
 if isempty(tc_track),return;end
 if isempty(centroids),return;end
 
+
+if isfield(centroids,'assets')
+    % centroids are entity, copy:
+    entity=centroids; clear centroids
+    centroids.lon=entity.assets.lon;
+    centroids.lat=entity.assets.lat;
+    centroids.ID=1:length(centroids.lon);
+end
+
 n_track_nodes  = length(tc_track.lat);
 n_centroids    = length(centroids.lat);
 cos_centroids_lat = cos(centroids.lat/180*pi); % calculate once for speedup
